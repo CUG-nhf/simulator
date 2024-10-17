@@ -2,6 +2,7 @@ import sys
 import os
 import logging
 import datetime
+import numpy as np
 import pandas as pd
 from job import Job, Trace
 from policies import ShortestJobFirst, FirstInFirstOut, ShortestRemainingTimeFirst, QuasiShortestServiceFirst
@@ -69,12 +70,17 @@ def trace_process(dir, date_range):
 	return df, begin
 
 
-def trace_philly_process(dir, date_range):
+def trace_philly_process(dir, date_range, mutation_probability=0.5):
 	start = '2017-10-01 00:00:00'
 	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['user', 'vc', 'jobname', 'gpu_num',
 																				   'state', 'submit_time', 'duration'])
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
+
+	# Randomly increase the gpu_num for some 1 GPU Jobs 
+	gpu_num_1_rows = df[df['gpu_num'] == 1]
+	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=42).index
+	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 16, 32, 64, 128], size=len(change_indices))
 
 	# VC filter
 	vc_dict = pd.read_pickle(dir+'/vc_dict_homo.pkl')

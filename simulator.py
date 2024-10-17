@@ -3,7 +3,6 @@ import time
 import os
 import argparse
 import multiprocessing
-
 import utils
 import cluster
 from estimators import NaiveEstimator, LGBEstimator, CombinedEstimator, PhillyEstimator
@@ -13,7 +12,7 @@ def main(args):
 	code_start = time.perf_counter()
 
 	'''Logger Setting'''
-	log_dir = f'{args.log_dir}/{args.experiment_name}'
+	log_dir = f'{args.log_dir}/{args.experiment_name}_{args.placer}'
 	if not os.path.exists(log_dir):
 		os.makedirs(log_dir + '/logfile')
 	logger = utils.logger_init(

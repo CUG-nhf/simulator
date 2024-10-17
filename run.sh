@@ -12,6 +12,6 @@ if [ -f ../nohup.out ]; then
     rm ../nohup.out
 fi
 
-rm -rf ../log
-mkdir ../log
-nohup python simulator.py -e='Philly' -t='./data/Philly' -l='../log' -p='random' --sweep > ../nohup.out &
+nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/prob_5' -p='consolidate' --sweep > ../nohup.out &
+
+nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/prob_5' -p='random' --sweep > ../nohup.out &
