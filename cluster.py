@@ -50,13 +50,14 @@ class VC:
 			if node.free_gpus > 0:
 				avail_node_list.append(node)
 		return avail_node_list
-
-	def release_resource(self, nodes_list):
+		
+	def release_resource(self, nodes_list, job):
 		for dict in nodes_list:
 			for i, gpu_num in dict.items():
 				node = self.node_list[i]
 				assert node.node_name == i
 				node.release_gpu(gpu_num)
+				node.delete_job(job)
 		return True
 
 	def consolidate_node_num(self):
@@ -72,33 +73,152 @@ class VC:
 			if node.job_num > 1:
 				list.append(node)
 		return len(list)
+
+	def migrationJob(self, migrationMap):
+		for job, source_node, target_node, job_req_gpu in migrationMap:
+			# 源节点释放资源
+			source_node.release_gpu(job_req_gpu)
+			source_node.delete_job(job)
+
+			# 目标节点分配资源
+			target_node.allocate_gpu(job_req_gpu)
+			target_node.add_job(job)
+
+			# 修改job信息
+			for dict in job['nodes']:
+				for i, _ in dict.items():
+					node = self.node_list[i]
+					assert node.node_name == i
+					if node == source_node:
+						job['nodes'].remove(dict)
+			job['nodes'].append({target_node.node_name: job_req_gpu})
 	
-	def get_fragmentation_ratio(self):
-		"""
-		Return the fragmentation ratio of this VC.
-		Fragmentation refers to the free GPUs of a node whose number of free GPUs is not equal to its total number of GPUs.
-		"""
-		frag_gpu_num = 0
-		total_gpu_num = 0
+	def frag_node_list(self):
+		# 判断什么样的节点才是碎片节点
+		list = []
 		for node in self.node_list:
-			total_gpu_num += node.num_gpus
-			if node.free_gpus < node.num_gpus:
-				frag_gpu_num += node.free_gpus
-		return round(frag_gpu_num / total_gpu_num, 2)
+			if 0 < node.free_gpus < 8:
+				list.append(node)
+		# list = sorted(list, key=lambda x : x.free_gpus, reverse=True) # 降序
+		return list
+	
+	def defragmentation(self):
+		# 碎片整理路径：1.选源主机 2.选作业 3.选目标主机 （打分排序）
+		# TODO: 作业迁移的代价还没考虑
+		# 	  既然作业当成已知，碎片整理时，可以把等待队列里的作业情况考虑进来
+		migrationMap = []
+		failed_node = None
+		loop_times = 0
+		while True:
+			frag_node_list = self.frag_node_list()
+			if failed_node != None and failed_node in frag_node_list:
+				frag_node_list.remove(failed_node)
+				failed_node = None
 			
+			loop_times += 1
+			if (loop_times > len(frag_node_list)):
+				return migrationMap
+				
+			if len(frag_node_list) < 2:
+				return migrationMap
+			
+			# 1.选源节点: 作业少，剩余时间长
+			source_node = None
+			node_score = 0
+			for node in frag_node_list:
+				if source_node == None and node.calculate_node_score() > 0:
+					source_node = node
+					node_score = node.calculate_node_score()
+				elif node.calculate_node_score() > node_score:
+					source_node = node
+					node_score = node.calculate_node_score()
+			
+			if source_node == None:
+				return migrationMap
+			
+			# 2.选待迁移作业，暂定全部迁出
+			migrationJob = []
+			for job in source_node.running_jobs:
+				for dict in job['nodes']:
+					for i, gpu_num in dict.items():
+						node = self.node_list[i]
+						assert node.node_name == i
+						if node == source_node:
+							migrationJob.append((job, gpu_num))
+			
+			# 3.选目标节点
+			tmp_mig_map = []
+			for job, job_req_gpu in migrationJob:
+				target_node = None
+				node_score = 0
+				for node in frag_node_list:
+					node_free_gpus = node.free_gpus
+					for _, _, toNode, gpus in tmp_mig_map:
+						if toNode == node:
+							node_free_gpus -= gpus
+					if  node_free_gpus < job_req_gpu or node == source_node:
+						continue
+					# 对可用节点进行打分排序，选择分数最小的节点：剩余时间接近，空闲卡数量少
+					tmp_node_score = 0.1*(node_free_gpus-job_req_gpu)/job_req_gpu+0.9*(abs(node.getLargestReaminTime()-job['remain']))/job['remain']
+					if target_node == None:
+						target_node = node
+						node_score = tmp_node_score
+					elif tmp_node_score < node_score:
+						target_node = node
+						node_score = tmp_node_score
+				
+				# 如果没找到目标节点，则说明无处可迁
+				if target_node == None:
+					break
+				tmp_mig_map.append((job, source_node, target_node, job_req_gpu))
 
-
+			if len(tmp_mig_map) == len(migrationJob):
+				self.migrationJob(tmp_mig_map)
+				migrationMap += tmp_mig_map
+				loop_times = 0
+			else:
+				failed_node = source_node
+				
 class Node:
 	def __init__(self, node_name, num_gpus, num_cpus):
 		self.node_name = node_name
 		self.job_num = 0
+		self.running_jobs = []
 		self.num_gpus = num_gpus
 		self.num_cpus = num_cpus
 		self.free_gpus = num_gpus
 		self.free_cpus = num_cpus
+	
+	def used_gpu(self):
+		return self.num_gpus - self.free_gpus
+	
+	def getLargestReaminTime(self):
+		largest = 0
+		for job in self.running_jobs:
+			if job['remain'] > largest:
+				largest = job['remain']
+		return largest
+	
+	def calculate_node_score(self):
+		# TODO: 调研GPU作业迁移，是作业数量影响大，还是卡数影响大
+		remain_time = 0
+		total_time = 0
+		for job in self.running_jobs:
+			remain_time += job['remain']
+			total_time += job['duration']
+		return remain_time / total_time - self.used_gpu() / self.num_gpus  # 剩余运行时间越大越好，已用GPU越少越好
+	
+	def add_job(self, job):
+		self.running_jobs.append(job)
+	
+	def delete_job(self, job):
+		for idx, _job in enumerate(self.running_jobs):
+			if job == _job:
+				self.running_jobs.pop(idx)
+				break
+		return True
 
 	'''allocate'''
-
 	def allocate_gpu(self, num_gpu):
 		if num_gpu > self.free_gpus:
 			return False
@@ -115,7 +235,6 @@ class Node:
 			return True
 
 	'''release'''
-
 	def release_gpu(self, num_gpu):
 		assert self.free_gpus + num_gpu <= self.num_gpus
 		self.free_gpus += num_gpu

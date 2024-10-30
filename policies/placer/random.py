@@ -33,6 +33,7 @@ class RandomPlacement:
         if select_flag:
             for (node, req_gpu) in alloc_nodes:
                 node.allocate_gpu(req_gpu)
+                node.add_job(job)
                 job['nodes'].append({node.node_name: req_gpu})
             return True
         else:

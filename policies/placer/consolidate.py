@@ -15,8 +15,7 @@ class ConsolidatePlacement:
 	def consolidateSelect(self, job_gpu_num):
 		alloc_nodes = []
 		if job_gpu_num <= 8:
-			nodes = sorted(self.avail_nodes,
-						   key=lambda x: x.free_gpus, reverse=False)
+			nodes = sorted(self.avail_nodes, key=lambda x: x.free_gpus, reverse=False) # 升序
 			for node in nodes:
 				if node.free_gpus >= job_gpu_num:
 					alloc_nodes.append((node, job_gpu_num))
@@ -70,6 +69,7 @@ class ConsolidatePlacement:
 		if select_flag:
 			for (node, req_gpu) in alloc_nodes:
 				node.allocate_gpu(req_gpu)
+				node.add_job(job)
 				job['nodes'].append({node.node_name: req_gpu})
 			return True
 		else:

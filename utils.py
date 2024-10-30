@@ -32,13 +32,24 @@ def get_available_schedulers():
 
 
 def get_available_placers():
-	return ['random', 'consolidate', 'consolidateFirst']
+	return ['random', 'consolidate', 'consolidateFirst', 'FGD']
+
+
+def modify_gpu_num(df, mutation_probability=0.0):
+	# Randomly increase the gpu_num for some 1 GPU Jobs 
+	gpu_num_1_rows = df[df['gpu_num'] == 1]
+	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=42).index
+	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 16, 32, 64, 128], size=len(change_indices))
+
+	return df
 
 
 def trace_process(dir, date_range):
 	start = '2020-04-01 00:00:00'
-	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['job_id', 'user', 'vc', 'jobname', 'gpu_num',
+	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['job_id', 'user', 'vc', 'gpu_num',
 																				   'cpu_num', 'state', 'submit_time', 'duration'])
+	df.rename(columns={'job_id':'jobname'}, inplace=True)
+	
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
 
@@ -69,18 +80,18 @@ def trace_process(dir, date_range):
 
 	return df, begin
 
-
-def trace_philly_process(dir, date_range, mutation_probability=0.5):
+def trace_philly_process(dir, date_range):
 	start = '2017-10-01 00:00:00'
-	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['user', 'vc', 'jobname', 'gpu_num',
-																				   'state', 'submit_time', 'duration'])
+	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], converters={'vc': str},
+				  usecols=['user', 'vc', 'jobname', 'gpu_num', 'state', 'submit_time', 'duration'])
+
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
+	# only 3 jobs deleted
+	df = df[~df['gpu_num'].isin([6, 7])]
 
-	# Randomly increase the gpu_num for some 1 GPU Jobs 
-	gpu_num_1_rows = df[df['gpu_num'] == 1]
-	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=42).index
-	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 16, 32, 64, 128], size=len(change_indices))
+	# Modify gpu num
+	# df = modify_gpu_num(df)
 
 	# VC filter
 	vc_dict = pd.read_pickle(dir+'/vc_dict_homo.pkl')
@@ -94,7 +105,7 @@ def trace_philly_process(dir, date_range, mutation_probability=0.5):
 	df['state'] = df['state'].replace('Pass', 'COMPLETED')
 	df['state'] = df['state'].replace('Failed', 'FAILED')
 	df['state'] = df['state'].replace('Killed', 'CANCELLED')
-
+	
 	# Normalizing
 	df['submit_time'] = df['submit_time'] - df.iloc[0]['submit_time']
 
@@ -110,9 +121,37 @@ def trace_philly_process(dir, date_range, mutation_probability=0.5):
 
 	df.sort_values(by='submit_time', inplace=True)
 	df.reset_index(inplace=True, drop=True)
-
+	
 	return df, begin
 
+def trace_test_process(dir, date_range):
+	start = '2017-10-01 00:00:00'
+	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], converters={'vc': str},
+				  usecols=['user', 'vc', 'jobname', 'gpu_num', 'state', 'submit_time', 'duration'])
+
+	df = df[df['submit_time'] >= pd.Timestamp(start)]
+	df['submit_time'] = df['submit_time'].apply(
+		lambda x: int(datetime.datetime.timestamp(pd.Timestamp(x))))
+
+	df['state'] = df['state'].replace('Pass', 'COMPLETED')
+	df['state'] = df['state'].replace('Failed', 'FAILED')
+	df['state'] = df['state'].replace('Killed', 'CANCELLED')
+	
+	# Normalizing
+	df['submit_time'] = df['submit_time'] - df.iloc[0]['submit_time']
+
+	df['remain'] = df['duration']
+	df[['start_time', 'end_time']] = sys.maxsize
+	df[['ckpt_times', 'queue', 'jct']] = 0
+	df['status'] = None
+
+	# Slicing simulation part
+	begin = (pd.Timestamp(date_range[0])-pd.Timestamp(start)).total_seconds()
+
+	df.sort_values(by='submit_time', inplace=True)
+	df.reset_index(inplace=True, drop=True)
+	
+	return df, begin
 
 def trace_parser(df):
 	trace = Trace()

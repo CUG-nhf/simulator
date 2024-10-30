@@ -15,7 +15,10 @@ class Job(dict):
 class Trace:
 	def __init__(self):
 		self.job_list = []
-
+	
+	def __iter__(self):
+		return iter(self.job_list)
+	
 	def append_job(self, job):
 		self.job_list.append(job)
 
