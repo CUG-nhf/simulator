@@ -168,7 +168,7 @@ class VC:
 						node_score = tmp_node_score
 				
 				# 如果没找到目标节点，则说明无处可迁
-				if target_node == None:
+				if target_node == None: 	# TODO:目前的找目标节点是找consolidate的，后面可以考虑加入找多节点的
 					break
 				tmp_mig_map.append((job, source_node, target_node, job_req_gpu))
 
@@ -177,7 +177,12 @@ class VC:
 				migrationMap += tmp_mig_map
 				loop_times = 0
 			else:
-				failed_node = source_node
+				failed_node = source_node  
+			"""
+			TODO：源节点迁出失败，那是其否可以成为目标节点呢？
+			例如两个7/8节点，一个2/8节点，7/8的节点作为源节点时，无法为其上的作业找的迁出节点，故迁出失败。但反过来，2/8节点上个的两个1GPU作业可以迁到两个7/8节点上
+			还是说由于打分机制，避免了这种可能。例如在上面的情况下，打分使得2/8节点先作为源节点
+			"""
 				
 class Node:
 	def __init__(self, node_name, num_gpus, num_cpus):

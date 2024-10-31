@@ -19,7 +19,7 @@ def main(args):
 		file=f'{log_dir}/logfile/{args.scheduler}_{args.placer}')
 
 	'''Infrastructure & Trace Initialization'''
-	# vc_dict = pd.read_pickle(args.trace_dir+'/vc_dict_homo.pkl')
+	vc_dict = pd.read_pickle(args.trace_dir+'/vc_dict_homo.pkl')
 	'''
 	6214e9 64
 	7f04ca 32
@@ -34,7 +34,7 @@ def main(args):
 	0e4a51 32
 	'''
 	# vc_dict = {'6214e9': 64}
-	vc_dict = {'11cb48': 16}
+	# vc_dict = {'11cb48': 16}
 
 	# Construct trace DataFrame from cluster_log.csv
 	if 'Philly' in args.experiment_name:

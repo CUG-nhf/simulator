@@ -57,7 +57,7 @@ class ShortestRemainingTimeFirst(Policy):
 				job.set_ckpt_time(self.time)
 				job['status'] = 'pend'
 				job['remain'] += self.ckpt_overhead(job)
-				assert self._vc.release_resource(job['nodes']) == True
+				assert self._vc.release_resource(job['nodes'], job) == True
 				job['nodes'] = []
 
 				if job not in self.que_list:
