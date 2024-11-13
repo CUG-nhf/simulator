@@ -102,8 +102,7 @@ def main(args):
 			else:
 				all_args_list.append((trace, CLUSTER.vc_list[i], args.placer,
 									  log_dir, args.scheduler, logger, start_ts))
-	# utils.simulate_vc(trace, CLUSTER.vc_list[i], args.placer,log_dir, args.scheduler, logger, start_ts)
-	# return
+
 	with multiprocessing.Pool(processes=process_num) as p:
 		results = [p.apply_async(utils.simulate_vc, args_list)
 				   for args_list in all_args_list]
@@ -136,6 +135,9 @@ if __name__ == '__main__':
 						choices=utils.get_available_schedulers(), type=str, help='Scheduler Algorithm')
 	parser.add_argument('-p', '--placer', default='consolidate',
 						choices=utils.get_available_placers(), type=str, help='Placer Algorithm')
+	
+	parser.add_argument('-d', '--defragmentation', action='store_true', default=False,
+					 	help='wether need defragmentation')
 
 	parser.add_argument('--sweep', action='store_true', default=False,
 						help='Run All Scheduler Policies in One Time')

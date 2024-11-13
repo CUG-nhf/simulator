@@ -28,7 +28,7 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 
 
 def get_available_schedulers():
-	return ['fifo', 'sjf', 'qssf'] #  'srtf',
+	return ['fifo', 'sjf'] #'srtf', 'qssf'
 
 
 def get_available_placers():
