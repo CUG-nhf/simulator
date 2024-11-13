@@ -2,9 +2,9 @@ from .policy import Policy
 
 
 class QuasiShortestServiceFirst(Policy):
-	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, estimator):
+	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, estimator, deFrag):
 		super(QuasiShortestServiceFirst, self).__init__(
-			trace, vc, placement, log_dir, logger, start_ts)
+			trace, vc, placement, log_dir, logger, start_ts, deFrag)
 		self.estimator = estimator
 		self._name = 'qssf'
 

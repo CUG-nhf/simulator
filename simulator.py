@@ -83,11 +83,11 @@ def main(args):
 			if policy == 'qssf':
 				for i in range(len(vc_dict)):
 					all_args_list.append((trace, CLUSTER.vc_list[i], args.placer,
-										  log_dir, policy, logger, start_ts, estimator))
+										  log_dir, policy, logger, start_ts, estimator, args.defragmentation))
 			else:
 				for i in range(len(vc_dict)):
 					all_args_list.append((trace, CLUSTER.vc_list[i], args.placer,
-										  log_dir, policy, logger, start_ts))
+										  log_dir, policy, logger, start_ts, args.defragmentation))
 	else:
 		if args.processes is None:
 			process_num = min(len(CLUSTER.vc_list), os.cpu_count())
@@ -98,10 +98,10 @@ def main(args):
 		for i in range(len(vc_dict)):
 			if args.scheduler == 'qssf':
 				all_args_list.append((trace, CLUSTER.vc_list[i], args.placer,
-									  log_dir, args.scheduler, logger, start_ts, estimator))
+									  log_dir, args.scheduler, logger, start_ts, estimator, args.defragmentation))
 			else:
 				all_args_list.append((trace, CLUSTER.vc_list[i], args.placer,
-									  log_dir, args.scheduler, logger, start_ts))
+									  log_dir, args.scheduler, logger, start_ts, args.defragmentation))
 
 	with multiprocessing.Pool(processes=process_num) as p:
 		results = [p.apply_async(utils.simulate_vc, args_list)

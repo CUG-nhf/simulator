@@ -4,10 +4,9 @@ from .placer.random import RandomPlacement
 from .placer.fgd import FragmentationGradientDescent
 import pandas as pd
 import os
-from collections import Counter
 
 class Policy:
-	def __init__(self, trace, vc, placement, log_dir, logger, start_ts):
+	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, deFrag):
 		self._placement = placement
 		self._vc = vc
 		self._vc_name = vc.vc_name
@@ -16,6 +15,7 @@ class Policy:
 		self.logger = logger
 		self.start_ts = start_ts
 		self.jobPopulation =  self.calculateJobPopulation()
+		self.needDeFrag = deFrag
 		self.last_defrag_time = 0
 
 		self.total_job_num = self.trace.job_num()
@@ -58,6 +58,9 @@ class Policy:
 			return 60
 	
 	def defragmentation(self):
+		if not self.needDeFrag:
+			return
+		
 		if self.time - self.last_defrag_time < 5*60:
 			return
 		if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:

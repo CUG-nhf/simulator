@@ -2,9 +2,9 @@ from .policy import Policy
 
 
 class ShortestRemainingTimeFirst(Policy):
-	def __init__(self, trace, vc, placement, log_dir, logger, start_ts):
+	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, deFrag):
 		super(ShortestRemainingTimeFirst, self).__init__(
-			trace, vc, placement, log_dir, logger, start_ts)
+			trace, vc, placement, log_dir, logger, start_ts, deFrag)
 		self._name = 'srtf'
 
 	def simulate(self):

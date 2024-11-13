@@ -12,16 +12,16 @@ sys.path.append('..')
 def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 	if policy == 'sjf':
 		scheduler = ShortestJobFirst(
-			trace, vc, placement, log_dir, logger, start_ts)
+			trace, vc, placement, log_dir, logger, start_ts, args[0])
 	elif policy == 'fifo':
 		scheduler = FirstInFirstOut(
-			trace, vc, placement, log_dir, logger, start_ts)
+			trace, vc, placement, log_dir, logger, start_ts, args[0])
 	elif policy == 'srtf':
 		scheduler = ShortestRemainingTimeFirst(
-			trace, vc, placement, log_dir, logger, start_ts)
+			trace, vc, placement, log_dir, logger, start_ts, args[0])
 	elif policy == 'qssf':
 		scheduler = QuasiShortestServiceFirst(
-			trace, vc, placement, log_dir, logger, start_ts, args[0])
+			trace, vc, placement, log_dir, logger, start_ts, args[0], args[1])
 	scheduler.simulate()
 	logger.info(f'Finish {vc.vc_name}')
 	return True
