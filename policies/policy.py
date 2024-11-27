@@ -56,22 +56,6 @@ class Policy:
 			return 30
 		else:
 			return 60
-	
-	def defragmentation(self):
-		if not self.needDeFrag:
-			return
-		
-		if self.time - self.last_defrag_time < 5*60:
-			return
-		if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
-			migrationMap = self._vc.defragmentation()
-			self.last_defrag_time = self.time
-			for job, source_node, target_node, job_req_gpu in migrationMap:
-				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
-	
-	def process_running_job(self):
-		for job in self.run_list:
-			job['remain'] -= 1
 
 	def runtime_log(self):
 		self.logger.info(
@@ -139,6 +123,24 @@ class Policy:
 		self.shared_node_num.append(self._vc.shared_node_num())
 		self.fragmentation_ratio.append(self.get_frag_ratio_1())
 
+	"Fragmentation Ratio and Defragmentation"
+
+	def defragmentation(self):
+		if not self.needDeFrag:
+			return
+		
+		if self.time - self.last_defrag_time < 5*60:
+			return
+		if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
+			migrationMap = self._vc.defragmentation()
+			self.last_defrag_time = self.time
+			for job, source_node, target_node, job_req_gpu in migrationMap:
+				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
+	
+	def process_running_job(self):
+		for job in self.run_list:
+			job['remain'] -= 1
+
 	def calculateJobPopulation(self):
 		# 1.统计各种GPU数量作业的数量
 		gpu_count_map= {}
@@ -163,4 +165,14 @@ class Policy:
 			total_gpu_num += node.num_gpus
 			if node.free_gpus < node.num_gpus:
 				frag_gpu_num += node.free_gpus
+		return round(frag_gpu_num / total_gpu_num, 2)
+	
+	#第二种碎片率计算方式：FGD碎片/total卡数
+	def get_frag_ratio_2(self):
+		fragFun = FragmentationGradientDescent(self._vc, self.jobPopulation).nodeGpuFragAmount
+		frag_gpu_num = 0
+		total_gpu_num = 0
+		for node in self._vc.node_list:
+			total_gpu_num += node.num_gpus
+			frag_gpu_num += fragFun(node.free_gpus)
 		return round(frag_gpu_num / total_gpu_num, 2)

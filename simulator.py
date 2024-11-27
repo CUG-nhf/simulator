@@ -20,30 +20,11 @@ def main(args):
 
 	'''Infrastructure & Trace Initialization'''
 	vc_dict = pd.read_pickle(args.trace_dir+'/vc_dict_homo.pkl')
-	'''
-	6214e9 64
-	7f04ca 32
-	11cb48 16
-	b436b2 64
-	ee9e8c 64
-	e13805 16
-	6c71a0 32
-	2869ce 16
-	ed69ec 8
-	103959 8
-	0e4a51 32
-	'''
-	# vc_dict = {'6214e9': 64}
-	# vc_dict = {'11cb48': 16}
 
 	# Construct trace DataFrame from cluster_log.csv
 	if 'Philly' in args.experiment_name:
 		trace_range = ('2017-10-01 00:00:00', '2017-11-30 23:59:00')
 		trace_df, start_ts = utils.trace_philly_process(
-			args.trace_dir, trace_range)
-	elif 'Test' in args.experiment_name:
-		trace_range = ('2017-10-01 00:00:00', '2017-11-30 23:59:00')
-		trace_df, start_ts = utils.trace_test_process(
 			args.trace_dir, trace_range)
 	else:
 		if 'Sept' in args.experiment_name:
@@ -64,8 +45,6 @@ def main(args):
 		vc_dict, args.num_gpus_per_node, args.num_cpus_per_node)
 
 	if 'Philly' in args.experiment_name:
-		estimator = PhillyEstimator(args)
-	elif 'Test' in args.experiment_name:
 		estimator = PhillyEstimator(args)
 	else:
 		# estimator = LGBEstimator(args)

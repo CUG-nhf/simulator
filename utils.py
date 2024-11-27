@@ -32,14 +32,14 @@ def get_available_schedulers():
 
 
 def get_available_placers():
-	return ['random', 'consolidate', 'consolidateFirst', 'FGD']
+	return ['random', 'consolidate', 'FGD'] #'consolidateFirst', 
 
 
-def modify_gpu_num(df, mutation_probability=0.0):
+def modify_gpu_num(df, mutation_probability=0.1):
 	# Randomly increase the gpu_num for some 1 GPU Jobs 
 	gpu_num_1_rows = df[df['gpu_num'] == 1]
 	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=42).index
-	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 16, 32, 64, 128], size=len(change_indices))
+	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 16, 32, 64], size=len(change_indices))
 
 	return df
 
@@ -97,6 +97,22 @@ def trace_philly_process(dir, date_range):
 	vc_dict = pd.read_pickle(dir+'/vc_dict_homo.pkl')
 	vc_list = vc_dict.keys()
 	df = df[df['vc'].isin(vc_list)]
+	'''
+	6214e9 64
+	7f04ca 32
+	11cb48 16
+	b436b2 64
+	ee9e8c 64
+	e13805 16
+	6c71a0 32
+	2869ce 16
+	ed69ec 8
+	103959 8
+	0e4a51 32
+	'''
+	
+	# 合并两个小集群
+	# df.loc[df['vc'] == 'ed69ec', 'vc'] = '103959'
 
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
 	df['submit_time'] = df['submit_time'].apply(
@@ -124,34 +140,6 @@ def trace_philly_process(dir, date_range):
 	
 	return df, begin
 
-def trace_test_process(dir, date_range):
-	start = '2017-10-01 00:00:00'
-	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], converters={'vc': str},
-				  usecols=['user', 'vc', 'jobname', 'gpu_num', 'state', 'submit_time', 'duration'])
-
-	df = df[df['submit_time'] >= pd.Timestamp(start)]
-	df['submit_time'] = df['submit_time'].apply(
-		lambda x: int(datetime.datetime.timestamp(pd.Timestamp(x))))
-
-	df['state'] = df['state'].replace('Pass', 'COMPLETED')
-	df['state'] = df['state'].replace('Failed', 'FAILED')
-	df['state'] = df['state'].replace('Killed', 'CANCELLED')
-	
-	# Normalizing
-	df['submit_time'] = df['submit_time'] - df.iloc[0]['submit_time']
-
-	df['remain'] = df['duration']
-	df[['start_time', 'end_time']] = sys.maxsize
-	df[['ckpt_times', 'queue', 'jct']] = 0
-	df['status'] = None
-
-	# Slicing simulation part
-	begin = (pd.Timestamp(date_range[0])-pd.Timestamp(start)).total_seconds()
-
-	df.sort_values(by='submit_time', inplace=True)
-	df.reset_index(inplace=True, drop=True)
-	
-	return df, begin
 
 def trace_parser(df):
 	trace = Trace()

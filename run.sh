@@ -19,14 +19,10 @@
 # nohup python simulator.py -e='Test' -t='./data/Test' -l='/data/nihaifeng/log/test' -p='consolidate' --sweep > ../nohup.out &
 
 
-placer_ls=('FGD')
+placer_ls=('FGD' 'consolidate')
 
 for placer in "${placer_ls[@]}"; do
-    # 检查文件是否存在，如果存在则删除
-    if [ -f "../${placer}_nohup.out" ]; then
-        rm "../${placer}_nohup.out"
-    fi
-    
-    # 使用当前的 placer 运行 nohup 命令
-    nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p="$placer" --sweep > "../${placer}_nohup.out" &
+	# 使用当前的 placer 运行 nohup 命令
+    nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test/noDeFrag' -p="$placer" --sweep > "../nohup/${placer}_noDeFrag.out" &
+	nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test/deFrag' -p="$placer" --sweep -d > "../nohup/${placer}_DeFrag.out" &
 done

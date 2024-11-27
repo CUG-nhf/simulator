@@ -99,7 +99,7 @@ class VC:
 		for node in self.node_list:
 			if 0 < node.free_gpus < 8:
 				list.append(node)
-		# list = sorted(list, key=lambda x : x.free_gpus, reverse=True) # 降序
+		list = sorted(list, key=lambda x : x.free_gpus, reverse=True) # 降序
 		return list
 	
 	def defragmentation(self):
@@ -146,7 +146,7 @@ class VC:
 						if node == source_node:
 							migrationJob.append((job, gpu_num))
 			
-			# 3.选目标节点
+			# 3.选目标节点  # TODO: 把选目标节点改成作业放置算法
 			tmp_mig_map = []
 			for job, job_req_gpu in migrationJob:
 				target_node = None
@@ -177,6 +177,7 @@ class VC:
 				migrationMap += tmp_mig_map
 				loop_times = 0
 			else:
+				# return migrationMap
 				failed_node = source_node  #TODO: 把这里改成return看看能不能解决死循环问题
 			"""
 			TODO：源节点迁出失败，那是其否可以成为目标节点呢？
