@@ -12,17 +12,13 @@
 # 		rm ../nohup.out
 # 	fi
 
-# nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/frag_ratio_1_2' -p='consolidate' --sweep > ../nohup.out &
-# nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/frag_ratio_1_2' -p='random' --sweep > ../nohup.out &
-# nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/frag_ratio_1_2' -p='FGD' --sweep > ../nohup.out &
+# ohup python simulator.py -e='Philly' -t='./data/Philly/frag_ratio_1_2' -l='/data/nihaifeng/log/frag_ratio_1_2' -p='gandiva' -s='gandiva' > ../nohup/nohup_nochangeration.out &
+nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/prob_0_1/deFrag' -p='gandiva' -s='gandiva' > ../nohup/nohup_ratio_0P1.out &
 
-# nohup python simulator.py -e='Test' -t='./data/Test' -l='/data/nihaifeng/log/test' -p='consolidate' --sweep > ../nohup.out &
+# placer_ls=('FGD' 'consolidate')
 
-
-placer_ls=('FGD' 'consolidate')
-
-for placer in "${placer_ls[@]}"; do
-	# 使用当前的 placer 运行 nohup 命令
-    nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test/noDeFrag' -p="$placer" --sweep > "../nohup/${placer}_noDeFrag.out" &
-	nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test/deFrag' -p="$placer" --sweep -d > "../nohup/${placer}_DeFrag.out" &
-done
+# for placer in "${placer_ls[@]}"; do
+# 	# 使用当前的 placer 运行 nohup 命令
+#     nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test/noDeFrag' -p="$placer" --sweep > "../nohup/${placer}_noDeFrag.out" &
+# 	nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test/deFrag' -p="$placer" --sweep -d > "../nohup/${placer}_DeFrag.out" &
+# done

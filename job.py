@@ -10,6 +10,12 @@ class Job(dict):
 
 	def get_ckpt_time(self):
 		return self.last_ckpt_time
+	
+	def get_req_gpu(self, node):
+		for dict in self.__getitem__('nodes'):
+			node_name, req_gpu = next(iter(dict.items()))
+			if node_name == node.node_name:
+				return req_gpu
 
 
 class Trace:

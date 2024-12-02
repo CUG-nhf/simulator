@@ -33,10 +33,20 @@ class VC:
 		self.total_gpus = num_gpus_per_node * node_num
 		self.total_cpus = num_cpus_per_node * node_num
 
+		# for Gandiva
+		self.node_g1 = []
+		self.node_g2 = []
+		self.node_g4 = []
+		self.node_g = {1:self.node_g1, 2:self.node_g2, 4:self.node_g4}
+
 	def init_vc_node(self):
 		for i in range(self.node_num):
 			node = Node(i, self._num_gpus_per_node, self._num_gpus_per_node)
 			self.node_list.append(node)
+	
+	def get_vc_node(self, node_name):
+		assert 0 <= node_name < self.node_num
+		return self.node_list[node_name]
 
 	def vc_free_gpus(self):
 		return sum(node.free_gpus for node in self.node_list)
@@ -77,21 +87,24 @@ class VC:
 	def migrationJob(self, migrationMap):
 		for job, source_node, target_node, job_req_gpu in migrationMap:
 			# 源节点释放资源
-			source_node.release_gpu(job_req_gpu)
+			source_node.release_gpu(job_req_gpu) == True
 			source_node.delete_job(job)
 
 			# 目标节点分配资源
-			target_node.allocate_gpu(job_req_gpu)
+			target_node.allocate_gpu(job_req_gpu) == True
 			target_node.add_job(job)
 
-			# 修改job信息
-			for dict in job['nodes']:
-				for i, _ in dict.items():
-					node = self.node_list[i]
-					assert node.node_name == i
-					if node == source_node:
-						job['nodes'].remove(dict)
-			job['nodes'].append({target_node.node_name: job_req_gpu})
+			need_new_item = True
+			for dict in job['nodes'][:]:  # 遍历副本，防止remove后改变遍历顺序
+				node_name, _ = next(iter(dict.items()))
+				if node_name == source_node.node_name:
+					job['nodes'].remove(dict)
+				elif node_name == target_node.node_name:
+					dict[node_name] += job_req_gpu
+					need_new_item = False
+			if need_new_item:
+				job['nodes'].append({target_node.node_name: job_req_gpu})
+				
 	
 	def frag_node_list(self):
 		# 判断什么样的节点才是碎片节点
@@ -215,14 +228,14 @@ class Node:
 		return remain_time / total_time - self.used_gpu() / self.num_gpus  # 剩余运行时间越大越好，已用GPU越少越好
 	
 	def add_job(self, job):
-		self.running_jobs.append(job)
-	
+		if job not in self.running_jobs:
+			self.running_jobs.append(job)
+			self.job_num += 1
+
 	def delete_job(self, job):
-		for idx, _job in enumerate(self.running_jobs):
-			if job == _job:
-				self.running_jobs.pop(idx)
-				break
-		return True
+		if job in self.running_jobs:
+			self.running_jobs.remove(job)
+			self.job_num -= 1
 
 	'''allocate'''
 	def allocate_gpu(self, num_gpu):
@@ -230,7 +243,6 @@ class Node:
 			return False
 		else:
 			self.free_gpus -= num_gpu
-			self.job_num += 1
 			return True
 
 	def allocate_cpu(self, num_cpu):
@@ -244,10 +256,18 @@ class Node:
 	def release_gpu(self, num_gpu):
 		assert self.free_gpus + num_gpu <= self.num_gpus
 		self.free_gpus += num_gpu
-		self.job_num -= 1
 		return True
 
 	def release_cpu(self, num_cpu):
 		assert self.free_cpus + num_cpu <= self.num_cpus
 		self.free_cpus += num_cpu
 		return True
+	
+	def running_job_req_gpus(self):
+		gpu = 0
+		for job in self.running_jobs:
+			for dict in job['nodes']:
+				id, gpus = next(iter(dict.items()))
+				if id == self.node_name:
+					gpu += gpus
+		return gpu

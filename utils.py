@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 import pandas as pd
 from job import Job, Trace
-from policies import ShortestJobFirst, FirstInFirstOut, ShortestRemainingTimeFirst, QuasiShortestServiceFirst
+from policies import ShortestJobFirst, FirstInFirstOut, ShortestRemainingTimeFirst, QuasiShortestServiceFirst, Gandiva
 sys.path.append('..')
 
 
@@ -22,17 +22,20 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 	elif policy == 'qssf':
 		scheduler = QuasiShortestServiceFirst(
 			trace, vc, placement, log_dir, logger, start_ts, args[0], args[1])
+	elif policy == 'gandiva':
+		scheduler = Gandiva(
+			trace, vc, placement, log_dir, logger, start_ts, args[0])
 	scheduler.simulate()
 	logger.info(f'Finish {vc.vc_name}')
 	return True
 
 
 def get_available_schedulers():
-	return ['fifo', 'sjf'] #'srtf', 'qssf'
+	return ['fifo', 'sjf', 'gandiva'] #'srtf', 'qssf'
 
 
 def get_available_placers():
-	return ['random', 'consolidate', 'FGD'] #'consolidateFirst', 
+	return ['random', 'consolidate', 'FGD', 'gandiva'] #'consolidateFirst', 
 
 
 def modify_gpu_num(df, mutation_probability=0.1):
@@ -91,7 +94,7 @@ def trace_philly_process(dir, date_range):
 	df = df[~df['gpu_num'].isin([6, 7])]
 
 	# Modify gpu num
-	# df = modify_gpu_num(df)
+	df = modify_gpu_num(df)
 
 	# VC filter
 	vc_dict = pd.read_pickle(dir+'/vc_dict_homo.pkl')
@@ -112,7 +115,7 @@ def trace_philly_process(dir, date_range):
 	'''
 	
 	# 合并两个小集群
-	# df.loc[df['vc'] == 'ed69ec', 'vc'] = '103959'
+	df.loc[df['vc'] == 'ed69ec', 'vc'] = '103959'
 
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
 	df['submit_time'] = df['submit_time'].apply(
