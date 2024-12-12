@@ -8,14 +8,12 @@
 
 # python simulator.py -e='Venus_Sept' -t='./data/Venus'
 
-# if [ -f ../nohup.out ]; then
-# 		rm ../nohup.out
-# 	fi
+nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='None' -s='defragS' > ../nohup/defragS_#1_2_2.out &
+# nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='None' -s='gandiva' > ../nohup/gandiva.out &
+# nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='FGD' -s='fifo' > ../nohup/fgd-fifo.out &
 
-# ohup python simulator.py -e='Philly' -t='./data/Philly/frag_ratio_1_2' -l='/data/nihaifeng/log/frag_ratio_1_2' -p='gandiva' -s='gandiva' > ../nohup/nohup_nochangeration.out &
-nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/prob_0_1/deFrag' -p='gandiva' -s='gandiva' > ../nohup/nohup_ratio_0P1.out &
-
-# placer_ls=('FGD' 'consolidate')
+# placer_ls=('FGD' 'consolidate' 'random')
+# scheduler_ls = ('fifo' 'sjf' '')
 
 # for placer in "${placer_ls[@]}"; do
 # 	# 使用当前的 placer 运行 nohup 命令

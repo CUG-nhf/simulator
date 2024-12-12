@@ -48,8 +48,7 @@ class FirstInFirstOut(Policy):
 					self.run_list.append(job)
 				else:
 					break
-			# if self.time > 923823:
-			# 	print("braek")
+			
 			self.defragmentation()
 
 			'''3. Log & Result Recorder'''

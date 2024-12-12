@@ -83,6 +83,8 @@ class VC:
 			if node.job_num > 1:
 				list.append(node)
 		return len(list)
+	
+	'''DeFragmentation'''
 
 	def migrationJob(self, migrationMap):
 		for job, source_node, target_node, job_req_gpu in migrationMap:
@@ -114,24 +116,12 @@ class VC:
 				list.append(node)
 		list = sorted(list, key=lambda x : x.free_gpus, reverse=True) # 降序
 		return list
-	
+
 	def defragmentation(self):
 		# 碎片整理路径：1.选源主机 2.选作业 3.选目标主机 （打分排序）
-		# TODO: 作业迁移的代价还没考虑
-		# 	  既然作业当成已知，碎片整理时，可以把等待队列里的作业情况考虑进来
 		migrationMap = []
-		failed_node = None
-		loop_times = 0
 		while True:
 			frag_node_list = self.frag_node_list()
-			if failed_node != None and failed_node in frag_node_list:
-				frag_node_list.remove(failed_node)
-				failed_node = None
-			
-			loop_times += 1
-			if (loop_times > len(frag_node_list)):
-				return migrationMap
-				
 			if len(frag_node_list) < 2:
 				return migrationMap
 			
@@ -159,7 +149,7 @@ class VC:
 						if node == source_node:
 							migrationJob.append((job, gpu_num))
 			
-			# 3.选目标节点  # TODO: 把选目标节点改成作业放置算法
+			# 3.选目标节点
 			tmp_mig_map = []
 			for job, job_req_gpu in migrationJob:
 				target_node = None
@@ -188,15 +178,8 @@ class VC:
 			if len(tmp_mig_map) == len(migrationJob):
 				self.migrationJob(tmp_mig_map)
 				migrationMap += tmp_mig_map
-				loop_times = 0
 			else:
-				# return migrationMap
-				failed_node = source_node  #TODO: 把这里改成return看看能不能解决死循环问题
-			"""
-			TODO：源节点迁出失败，那是其否可以成为目标节点呢？
-			例如两个7/8节点，一个2/8节点，7/8的节点作为源节点时，无法为其上的作业找的迁出节点，故迁出失败。但反过来，2/8节点上个的两个1GPU作业可以迁到两个7/8节点上
-			或者说由于排序打分机制，避免了这种可能。例如在上面的情况下，打分使得2/8节点先作为源节点
-			"""
+				return migrationMap
 				
 class Node:
 	def __init__(self, node_name, num_gpus, num_cpus):

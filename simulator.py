@@ -12,7 +12,7 @@ def main(args):
 	code_start = time.perf_counter()
 
 	'''Logger Setting'''
-	log_dir = f'{args.log_dir}/{args.experiment_name}_{args.placer}'
+	log_dir = f'{args.log_dir}/{args.experiment_name}_{args.scheduler}_{args.placer}'
 	if not os.path.exists(log_dir):
 		os.makedirs(log_dir + '/logfile')
 	logger = utils.logger_init(

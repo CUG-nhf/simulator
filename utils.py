@@ -5,7 +5,8 @@ import datetime
 import numpy as np
 import pandas as pd
 from job import Job, Trace
-from policies import ShortestJobFirst, FirstInFirstOut, ShortestRemainingTimeFirst, QuasiShortestServiceFirst, Gandiva
+from policies import ShortestJobFirst, FirstInFirstOut, ShortestRemainingTimeFirst, QuasiShortestServiceFirst
+from policies import Gandiva, DeFragScheduler
 sys.path.append('..')
 
 
@@ -25,23 +26,27 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 	elif policy == 'gandiva':
 		scheduler = Gandiva(
 			trace, vc, placement, log_dir, logger, start_ts, args[0])
+	elif policy == 'defragS':
+		scheduler = DeFragScheduler(
+			trace, vc, placement, log_dir, logger, start_ts, args[0])
 	scheduler.simulate()
 	logger.info(f'Finish {vc.vc_name}')
 	return True
 
 
 def get_available_schedulers():
-	return ['fifo', 'sjf', 'gandiva'] #'srtf', 'qssf'
+	return ['fifo', 'sjf', 'gandiva', 'defragS'] #'srtf', 'qssf'
 
 
 def get_available_placers():
-	return ['random', 'consolidate', 'FGD', 'gandiva'] #'consolidateFirst', 
+	return ['random', 'consolidate', 'FGD', 'None'] #'consolidateFirst', 
 
 
 def modify_gpu_num(df, mutation_probability=0.1):
 	# Randomly increase the gpu_num for some 1 GPU Jobs 
 	gpu_num_1_rows = df[df['gpu_num'] == 1]
 	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=42).index
+	np.random.seed(42)
 	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 16, 32, 64], size=len(change_indices))
 
 	return df

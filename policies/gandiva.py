@@ -113,9 +113,8 @@ class Gandiva(Policy):
 								migrationMap.append((job, self._vc.get_vc_node(node_name), tmp_node, req_gpu))
 							break
 
-			# for j, sn, tn, g in migrationMap:
-			# 	if sn.node_name == 57 or tn.node_name == 57:
-					# print(f"{self.time}: {j['jobname']} FROM {sn.node_name}({sn.free_gpus},{len(sn.running_jobs)},{sn.running_job_req_gpus()}) --> {tn.node_name}({tn.free_gpus},{len(tn.running_jobs)},{tn.running_job_req_gpus()}) WITH {g} GPUs")
+			for j, sn, tn, g in migrationMap:
+				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {j['jobname']} FROM {sn.node_name} MIGRATE TO {tn.node_name} WITH {g} GPUs''')
 				# migrate jobs with finding target node
 			self._vc.migrationJob(migrationMap)
 
