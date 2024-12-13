@@ -7,7 +7,7 @@ class DeFragScheduler(Policy):
 		super(DeFragScheduler, self).__init__(
 			trace, vc, placement, log_dir, logger, start_ts, True)
 		self._name = 'defragS'
-		self.job_selector = 'sdf'
+		self.job_selector = 'sjf'
 		self.sqf_min = 0
 		self.sqf_max = 0
 
@@ -44,7 +44,7 @@ class DeFragScheduler(Policy):
 					break
 
 			# Pend Job
-			if self.job_selector in ['sqf', 'fifo']:
+			if self.job_selector in ['sqf', 'fifo', 'sjf']:
 				self.pendJob1()
 			elif self.job_selector in ['sdf']:
 				self.pendJob2()
@@ -71,6 +71,8 @@ class DeFragScheduler(Policy):
 			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
 		elif self.job_selector == 'sqf':
 			que_ls.sort(key=lambda x: x.__getitem__('duration') / x.__getitem__('gpu_num'))
+		elif self.job_selector == 'sjf':
+			que_ls.sort(key=lambda x: x.__getitem__('duration'))
 		for job in que_ls:
 			if self.jobPlacer(job):
 				job['start_time'] = self.time
@@ -165,12 +167,6 @@ class DeFragScheduler(Policy):
 			node_free_gpus = node.free_gpus
 			# 对可用节点进行打分排序，选择分数最小的节点：剩余时间接近，空闲卡数量少
 			alpha, beta = 0.1, 0.9
-			# if not isJobSelector:
-			# 	tmp_node_score = alpha*(node_free_gpus-partial_node_nmu)/partial_node_nmu+beta*(abs(node.getLargestReaminTime()-job['remain']))/job['remain']
-			# else:
-			# 	tmp_node_score = alpha*(node_free_gpus-partial_node_nmu)/partial_node_nmu \
-			# 					+beta*(abs(node.getLargestReaminTime()-job['remain']))/job['remain'] \
-			# 					+ (job['remain']/job['gpu_num'] - self.sqf_min)/(self.sqf_max - self.sqf_min)
 			if not isJobSelector:
 				tmp_node_score = alpha*(node_free_gpus-partial_node_nmu)/partial_node_nmu+beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
 			else:

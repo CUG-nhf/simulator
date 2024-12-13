@@ -8,7 +8,7 @@
 
 # python simulator.py -e='Venus_Sept' -t='./data/Venus'
 
-nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='None' -s='defragS' > ../nohup/defragS_#1_2_2.out &
+nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='None' -s='defragS' > ../nohup/defragS_sjf.out &
 # nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='None' -s='gandiva' > ../nohup/gandiva.out &
 # nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='FGD' -s='fifo' > ../nohup/fgd-fifo.out &
 
