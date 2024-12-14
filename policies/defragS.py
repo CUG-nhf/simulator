@@ -170,9 +170,7 @@ class DeFragScheduler(Policy):
 			if not isJobSelector:
 				tmp_node_score = alpha*(node_free_gpus-partial_node_nmu)/partial_node_nmu+beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
 			else:
-				tmp_node_score = alpha*(node_free_gpus-partial_node_nmu)/partial_node_nmu \
-								+beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
-								+ (job['remain']/job['gpu_num'] - self.sqf_min)/(self.sqf_max - self.sqf_min)
+				tmp_node_score = self.calculateJobPopulation(node, job, node_free_gpus, partial_node_nmu)
 			if target_node == None:
 				target_node = node
 				node_score = tmp_node_score
@@ -182,5 +180,11 @@ class DeFragScheduler(Policy):
 		alloc_nodes.append((target_node, partial_node_nmu))
 
 		return True, alloc_nodes, node_score
+	
+	def calculateFitnessScore(self, node, job, node_free_gpu, job_req_gpu):
+		alpha, beta = 0.1, 0.9
+		return	alpha*(node_free_gpu-job_req_gpu)/job_req_gpu \
+				+ beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
+				+ (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min)
 
 
