@@ -162,7 +162,6 @@ class VC:
 					if  node_free_gpus < job_req_gpu or node == source_node:
 						continue
 					# 对可用节点进行打分排序，选择分数最小的节点：剩余时间接近，空闲卡数量少
-					# tmp_node_score = 0.1*(node_free_gpus-job_req_gpu)/job_req_gpu+0.9*(abs(node.getLargestReaminTime()-job['remain']))/job['remain']
 					tmp_node_score = DeFragScheduler.calculateFitnessScore(node, job, node_free_gpus, job_req_gpu)
 					if target_node == None:
 						target_node = node
