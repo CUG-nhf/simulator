@@ -2,9 +2,9 @@ from .policy import Policy
 
 
 class QuasiShortestServiceFirst(Policy):
-	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, estimator, deFrag):
+	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, estimator):
 		super(QuasiShortestServiceFirst, self).__init__(
-			trace, vc, placement, log_dir, logger, start_ts, deFrag)
+			trace, vc, placement, log_dir, logger, start_ts)
 		self.estimator = estimator
 		self._name = 'qssf'
 
@@ -60,7 +60,7 @@ class QuasiShortestServiceFirst(Policy):
 					self.run_list.append(job)
 				else:
 					break
-			self.defragmentation()
+			
 			'''5. Log & Result Recorder'''
 			if self.time % 10000 == 0:
 				self.runtime_log()

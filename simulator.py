@@ -62,11 +62,11 @@ def main(args):
 			if policy == 'qssf':
 				for i in range(len(vc_dict)):
 					all_args_list.append((trace, CLUSTER.vc_list[i], args.placer,
-										  log_dir, policy, logger, start_ts, estimator, args.defragmentation))
+										  log_dir, policy, logger, start_ts, estimator))
 			else:
 				for i in range(len(vc_dict)):
 					all_args_list.append((trace, CLUSTER.vc_list[i], args.placer,
-										  log_dir, policy, logger, start_ts, args.defragmentation))
+										  log_dir, policy, logger, start_ts))
 	else:
 		if args.processes is None:
 			process_num = min(len(CLUSTER.vc_list), os.cpu_count())
@@ -77,10 +77,10 @@ def main(args):
 		for i in range(len(vc_dict)):
 			if args.scheduler == 'qssf':
 				all_args_list.append((trace, CLUSTER.vc_list[i], args.placer,
-									  log_dir, args.scheduler, logger, start_ts, estimator, args.defragmentation))
+									  log_dir, args.scheduler, logger, start_ts, estimator))
 			else:
 				all_args_list.append((trace, CLUSTER.vc_list[i], args.placer,
-									  log_dir, args.scheduler, logger, start_ts, args.defragmentation))
+									  log_dir, args.scheduler, logger, start_ts))
 
 	with multiprocessing.Pool(processes=process_num) as p:
 		results = [p.apply_async(utils.simulate_vc, args_list)
@@ -115,9 +115,6 @@ if __name__ == '__main__':
 	parser.add_argument('-p', '--placer', default='consolidate',
 						choices=utils.get_available_placers(), type=str, help='Placer Algorithm')
 	
-	parser.add_argument('-d', '--defragmentation', action='store_true', default=False,
-					 	help='wether need defragmentation')
-
 	parser.add_argument('--sweep', action='store_true', default=False,
 						help='Run All Scheduler Policies in One Time')
 	parser.add_argument('-j', '--processes', type=int, default=None,

@@ -6,7 +6,7 @@ import pandas as pd
 import os
 
 class Policy:
-	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, deFrag):
+	def __init__(self, trace, vc, placement, log_dir, logger, start_ts):
 		self._placement = placement
 		self._vc = vc
 		self._vc_name = vc.vc_name
@@ -14,8 +14,7 @@ class Policy:
 		self.trace = trace.vc_trace(vc.vc_name)
 		self.logger = logger
 		self.start_ts = start_ts
-		self.jobPopulation =  self.calculateJobPopulation()
-		self.needDeFrag = deFrag
+		self.jobPopulation =  None
 		self.last_defrag_time = 0
 
 		self.total_job_num = self.trace.job_num()
@@ -123,20 +122,8 @@ class Policy:
 		self.shared_node_num.append(self._vc.shared_node_num())
 		self.fragmentation_ratio.append(self.get_frag_ratio_1())
 
-	"Fragmentation Ratio and Defragmentation"
+	"Fragmentation Ratio"
 
-	def defragmentation(self):
-		if not self.needDeFrag:
-			return
-		
-		if self.time - self.last_defrag_time < 5*60:
-			return
-		if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
-			migrationMap = self._vc.defragmentation()
-			self.last_defrag_time = self.time
-			for job, source_node, target_node, job_req_gpu in migrationMap:
-				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
-	
 	def process_running_job(self):
 		for job in self.run_list:
 			job['remain'] -= 1

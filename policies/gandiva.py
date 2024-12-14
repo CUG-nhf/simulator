@@ -138,9 +138,6 @@ class Gandiva(Policy):
 				node.allocate_gpu(req_gpu)
 				node.add_job(job)
 				job['nodes'].append({node.node_name: req_gpu})
-
-				# if node.node_name == 57:
-				# 	print(f"Job Placement: {job['jobname']} req_gpu:{req_gpu} node57_free_gpu:{node.free_gpus}, node57_all_job_gpus:{node.running_job_req_gpus()}")
 			return True
 		else:
 			return False

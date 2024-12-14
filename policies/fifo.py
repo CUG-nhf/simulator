@@ -2,9 +2,9 @@ from .policy import Policy
 
 
 class FirstInFirstOut(Policy):
-	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, deFrag):
+	def __init__(self, trace, vc, placement, log_dir, logger, start_ts):
 		super(FirstInFirstOut, self).__init__(
-			trace, vc, placement, log_dir, logger, start_ts, deFrag)
+			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'fifo'
 
 	def simulate(self):
@@ -48,8 +48,6 @@ class FirstInFirstOut(Policy):
 					self.run_list.append(job)
 				else:
 					break
-			
-			self.defragmentation()
 
 			'''3. Log & Result Recorder'''
 			if self.time % 10000 == 0:

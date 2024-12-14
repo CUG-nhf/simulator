@@ -13,22 +13,22 @@ sys.path.append('..')
 def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 	if policy == 'sjf':
 		scheduler = ShortestJobFirst(
-			trace, vc, placement, log_dir, logger, start_ts, args[0])
+			trace, vc, placement, log_dir, logger, start_ts)
 	elif policy == 'fifo':
 		scheduler = FirstInFirstOut(
-			trace, vc, placement, log_dir, logger, start_ts, args[0])
+			trace, vc, placement, log_dir, logger, start_ts)
 	elif policy == 'srtf':
 		scheduler = ShortestRemainingTimeFirst(
-			trace, vc, placement, log_dir, logger, start_ts, args[0])
+			trace, vc, placement, log_dir, logger, start_ts)
 	elif policy == 'qssf':
 		scheduler = QuasiShortestServiceFirst(
-			trace, vc, placement, log_dir, logger, start_ts, args[0], args[1])
+			trace, vc, placement, log_dir, logger, start_ts, args[0])
 	elif policy == 'gandiva':
 		scheduler = Gandiva(
-			trace, vc, placement, log_dir, logger, start_ts, args[0])
+			trace, vc, placement, log_dir, logger, start_ts)
 	elif policy == 'defragS':
 		scheduler = DeFragScheduler(
-			trace, vc, placement, log_dir, logger, start_ts, args[0])
+			trace, vc, placement, log_dir, logger, start_ts)
 	scheduler.simulate()
 	logger.info(f'Finish {vc.vc_name}')
 	return True
@@ -242,8 +242,8 @@ def cluster_analysis(scheduler, placer, log_dir, vc_dict):
 
 	jct_avg = jct_avg.astype(int)
 	que_avg = que_avg.astype(int)
-	jct_avg.to_csv(f'{log_dir}/jct_avg_{placer}.csv')
-	que_avg.to_csv(f'{log_dir}/que_avg_{placer}.csv')
+	jct_avg.to_csv(f'{log_dir}/jct_avg.csv')
+	que_avg.to_csv(f'{log_dir}/que_avg.csv')
 
 if __name__ == '__main__' :
 	vc_dict = pd.read_pickle('./data/Philly' + '/vc_dict_homo.pkl')

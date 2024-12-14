@@ -3,11 +3,11 @@ import sys
 
 
 class DeFragScheduler(Policy):
-	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, deFrag):
+	def __init__(self, trace, vc, placement, log_dir, logger, start_ts):
 		super(DeFragScheduler, self).__init__(
-			trace, vc, placement, log_dir, logger, start_ts, True)
+			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'defragS'
-		self.job_selector = 'sjf'
+		self.job_selector = 'sdf'
 		self.sqf_min = 0
 		self.sqf_max = 0
 
@@ -45,9 +45,9 @@ class DeFragScheduler(Policy):
 
 			# Pend Job
 			if self.job_selector in ['sqf', 'fifo', 'sjf']:
-				self.pendJob1()
-			elif self.job_selector in ['sdf']:
 				self.pendJob2()
+			elif self.job_selector in ['sdf']:
+				self.pendJob1()
 			
 			self.defragmentation()
 
@@ -65,7 +65,7 @@ class DeFragScheduler(Policy):
 		self.log_recorder(self._name)
 	
 
-	def pendJob1(self):
+	def pendJob2(self):
 		que_ls = self.que_list.copy()  # Avoid list.remove() issue
 		if self.job_selector == 'fifo':
 			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
@@ -84,7 +84,7 @@ class DeFragScheduler(Policy):
 			else:
 				break
 		
-	def pendJob2(self):
+	def pendJob1(self):
 		job, alloc_nodes, score = self.jobSelector()
 		while job != None:
 			print(f"score: {score}")
@@ -170,7 +170,7 @@ class DeFragScheduler(Policy):
 			if not isJobSelector:
 				tmp_node_score = alpha*(node_free_gpus-partial_node_nmu)/partial_node_nmu+beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
 			else:
-				tmp_node_score = self.calculateJobPopulation(node, job, node_free_gpus, partial_node_nmu)
+				tmp_node_score = self.calculateFitnessScore(node, job, node_free_gpus, partial_node_nmu)
 			if target_node == None:
 				target_node = node
 				node_score = tmp_node_score
@@ -187,4 +187,11 @@ class DeFragScheduler(Policy):
 				+ beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
 				+ (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min)
 
-
+	def defragmentation(self):
+		if self.time - self.last_defrag_time < 5*60:
+			return
+		if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
+			migrationMap = self._vc.defragmentation()
+			self.last_defrag_time = self.time
+			for job, source_node, target_node, job_req_gpu in migrationMap:
+				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')

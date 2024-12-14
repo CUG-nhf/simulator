@@ -2,9 +2,9 @@ from .policy import Policy
 
 
 class ShortestRemainingTimeFirst(Policy):
-	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, deFrag):
+	def __init__(self, trace, vc, placement, log_dir, logger, start_ts):
 		super(ShortestRemainingTimeFirst, self).__init__(
-			trace, vc, placement, log_dir, logger, start_ts, deFrag)
+			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'srtf'
 
 	def simulate(self):
@@ -86,8 +86,6 @@ class ShortestRemainingTimeFirst(Policy):
 						self.que_list.append(job)
 					continue
 
-			self.defragmentation()
-			
 			'''6. Log & Result Recorder'''
 			if self.time % 10000 == 0:
 				self.runtime_log()

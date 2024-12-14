@@ -117,7 +117,7 @@ class VC:
 		list = sorted(list, key=lambda x : x.free_gpus, reverse=True) # 降序
 		return list
 
-	def defragmentation(self):
+	def defragmentation(self, DFS):
 		# 碎片整理路径：1.选源主机 2.选作业 3.选目标主机 （打分排序）
 		migrationMap = []
 		while True:
@@ -162,7 +162,8 @@ class VC:
 					if  node_free_gpus < job_req_gpu or node == source_node:
 						continue
 					# 对可用节点进行打分排序，选择分数最小的节点：剩余时间接近，空闲卡数量少
-					tmp_node_score = 0.1*(node_free_gpus-job_req_gpu)/job_req_gpu+0.9*(abs(node.getLargestReaminTime()-job['remain']))/job['remain']
+					# tmp_node_score = 0.1*(node_free_gpus-job_req_gpu)/job_req_gpu+0.9*(abs(node.getLargestReaminTime()-job['remain']))/job['remain']
+					tmp_node_score = DFS.calculateFitnessScore(node, job, node_free_gpus, job_req_gpu)
 					if target_node == None:
 						target_node = node
 						node_score = tmp_node_score
@@ -246,11 +247,3 @@ class Node:
 		self.free_cpus += num_cpu
 		return True
 	
-	def running_job_req_gpus(self):
-		gpu = 0
-		for job in self.running_jobs:
-			for dict in job['nodes']:
-				id, gpus = next(iter(dict.items()))
-				if id == self.node_name:
-					gpu += gpus
-		return gpu

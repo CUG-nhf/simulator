@@ -8,9 +8,9 @@
 
 # python simulator.py -e='Venus_Sept' -t='./data/Venus'
 
-nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='None' -s='defragS' > ../nohup/defragS_sjf.out &
-# nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='None' -s='gandiva' > ../nohup/gandiva.out &
-# nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test' -p='FGD' -s='fifo' > ../nohup/fgd-fifo.out &
+nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/tmp' -s='defragS' -p='None' > ../nohup/tmp.out & 
+#  这个跑的是 看cluster.defragmentation中findTargetNode计算公式更新后 效果如何
+
 
 # placer_ls=('FGD' 'consolidate' 'random')
 # scheduler_ls = ('fifo' 'sjf' '')
