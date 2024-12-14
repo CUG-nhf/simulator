@@ -14,7 +14,7 @@ class Policy:
 		self.trace = trace.vc_trace(vc.vc_name)
 		self.logger = logger
 		self.start_ts = start_ts
-		self.jobPopulation =  None
+		self.jobPopulation =  self.calculateJobPopulation()
 		self.last_defrag_time = 0
 
 		self.total_job_num = self.trace.job_num()

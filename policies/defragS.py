@@ -166,9 +166,8 @@ class DeFragScheduler(Policy):
 		for node in nodes:
 			node_free_gpus = node.free_gpus
 			# 对可用节点进行打分排序，选择分数最小的节点：剩余时间接近，空闲卡数量少
-			alpha, beta = 0.1, 0.9
 			if not isJobSelector:
-				tmp_node_score = alpha*(node_free_gpus-partial_node_nmu)/partial_node_nmu+beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
+				tmp_node_score = 0.1*(node_free_gpus-partial_node_nmu)/partial_node_nmu+0.9*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
 			else:
 				tmp_node_score = self.calculateFitnessScore(node, job, node_free_gpus, partial_node_nmu)
 			if target_node == None:
@@ -182,7 +181,7 @@ class DeFragScheduler(Policy):
 		return True, alloc_nodes, node_score
 	
 	def calculateFitnessScore(self, node, job, node_free_gpu, job_req_gpu):
-		alpha, beta = 0.1, 0.9
+		alpha, beta = 0.5, 0.5
 		return	alpha*(node_free_gpu-job_req_gpu)/job_req_gpu \
 				+ beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
 				+ (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min)
@@ -191,7 +190,7 @@ class DeFragScheduler(Policy):
 		if self.time - self.last_defrag_time < 5*60:
 			return
 		if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
-			migrationMap = self._vc.defragmentation()
+			migrationMap = self._vc.defragmentation(self)
 			self.last_defrag_time = self.time
 			for job, source_node, target_node, job_req_gpu in migrationMap:
 				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')

@@ -8,9 +8,8 @@
 
 # python simulator.py -e='Venus_Sept' -t='./data/Venus'
 
-nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/tmp' -s='defragS' -p='None' > ../nohup/tmp.out & 
-#  这个跑的是 看cluster.defragmentation中findTargetNode计算公式更新后 效果如何
-
+nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/tmp' -s='defragS' -p='None' > ../nohup/defragS_1and2_test.out & 
+# 当前运行的是，当alpha, beta  = 0.5, 0.5时的结果
 
 # placer_ls=('FGD' 'consolidate' 'random')
 # scheduler_ls = ('fifo' 'sjf' '')
