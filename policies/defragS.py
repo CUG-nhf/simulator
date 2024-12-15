@@ -7,7 +7,7 @@ class DeFragScheduler(Policy):
 		super(DeFragScheduler, self).__init__(
 			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'defragS'
-		self.job_selector = 'sdf'
+		self.job_selector = 'sqf'
 		self.sqf_min = 0
 		self.sqf_max = 0
 
@@ -107,7 +107,7 @@ class DeFragScheduler(Policy):
 		target_node = None
 
 		for job in self.que_list:
-			select_flag, alloc_nodes, score = self.nodesSelect(job, True)
+			select_flag, alloc_nodes, score = self.nodesSelect(job)
 			if select_flag:
 				if min_job == None or score < min_score:
 					min_job, min_score, target_node = job, score, alloc_nodes
@@ -135,7 +135,7 @@ class DeFragScheduler(Policy):
 		else:
 			return False
 	
-	def nodesSelect(self, job, isJobSelector=False):
+	def nodesSelect(self, job):
 		job_gpu_num = job['gpu_num']
 		alloc_nodes = []
 		complete_node_num = job_gpu_num // 8
@@ -166,10 +166,7 @@ class DeFragScheduler(Policy):
 		for node in nodes:
 			node_free_gpus = node.free_gpus
 			# 对可用节点进行打分排序，选择分数最小的节点：剩余时间接近，空闲卡数量少
-			if not isJobSelector:
-				tmp_node_score = 0.1*(node_free_gpus-partial_node_nmu)/partial_node_nmu+0.9*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
-			else:
-				tmp_node_score = self.calculateFitnessScore(node, job, node_free_gpus, partial_node_nmu)
+			tmp_node_score = self.calculateFitnessScore(node, job, node_free_gpus, partial_node_nmu)
 			if target_node == None:
 				target_node = node
 				node_score = tmp_node_score
@@ -181,7 +178,7 @@ class DeFragScheduler(Policy):
 		return True, alloc_nodes, node_score
 	
 	def calculateFitnessScore(self, node, job, node_free_gpu, job_req_gpu):
-		alpha, beta = 0.5, 0.5
+		alpha, beta = 0.1, 0.9
 		return	alpha*(node_free_gpu-job_req_gpu)/job_req_gpu \
 				+ beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
 				+ (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min)
