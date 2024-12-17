@@ -35,20 +35,19 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 
 
 def get_available_schedulers():
-	return ['fifo', 'sjf', 'gandiva', 'defragS'] #'srtf', 'qssf'
+	return ['fifo', 'sjf', 'gandiva', 'defragS'] # 'srtf', 'qssf',
 
 
 def get_available_placers():
-	return ['random', 'consolidate', 'FGD', 'None', 'fifo', 'sjf', 'sqf', 'sdf', '1and2'] #'consolidateFirst', 
+	return ['random', 'consolidate', 'FGD', 'consolidateFirst']
 
 
-def modify_gpu_num(df, mutation_probability=0.1):
+def modify_gpu_num(df, mutation_probability=0.1, random_state = 44):
 	# Randomly increase the gpu_num for some 1 GPU Jobs 
 	gpu_num_1_rows = df[df['gpu_num'] == 1]
-	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=42).index
-	np.random.seed(42)
+	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=random_state).index
+	np.random.seed(random_state)
 	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 16, 32, 64], size=len(change_indices))
-
 	return df
 
 

@@ -178,16 +178,16 @@ class DeFragScheduler(Policy):
 		return True, alloc_nodes, node_score
 	
 	def calculateFitnessScore(self, node, job, node_free_gpu, job_req_gpu):
-		alpha, beta = 0.1, 0.9
-		return	alpha*(node_free_gpu-job_req_gpu)/job_req_gpu \
-				+ beta*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
-				+ (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min)
+		alpha, beta, gamma = 0.1, 0.9, 1
+		return	alpha * (node_free_gpu-job_req_gpu)/job_req_gpu \
+				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
+				+ gamma * (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min)
 
 	def defragmentation(self):
-		if self.time - self.last_defrag_time < 5*60:
-			return
-		#if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
-		if len(self.que_list) > 0 and self._vc.vc_free_gpus() > min(self.que_list, key=lambda job: job['gpu_num'])['gpu_num']:
+		# if self.time - self.last_defrag_time < 5*60:
+		# # if self.time - self.last_defrag_time < 60:
+		# 	return
+		if len(self.que_list) > 0 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
 			migrationMap = self._vc.defragmentation()
 			self.last_defrag_time = self.time
 			for job, source_node, target_node, job_req_gpu in migrationMap:

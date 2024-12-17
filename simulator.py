@@ -113,7 +113,7 @@ if __name__ == '__main__':
 	parser.add_argument('-s', '--scheduler', default='fifo',
 						choices=utils.get_available_schedulers(), type=str, help='Scheduler Algorithm')
 	parser.add_argument('-p', '--placer', default='consolidate',
-						choices=utils.get_available_placers(), type=str, help='Placer Algorithm')
+						type=str, help='Placer Algorithm') # choices=utils.get_available_placers(),
 	
 	parser.add_argument('--sweep', action='store_true', default=False,
 						help='Run All Scheduler Policies in One Time')
