@@ -8,7 +8,8 @@
 
 # python simulator.py -e='Venus_Sept' -t='./data/Venus'
 
-nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/tmp' -s='defragS' -p='None' > ../nohup/defragS.out & 
+nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/tmp' -p='sdf' -s='defragS' > ../nohup/DFS_sdf.out & 
+# 这次运行的是把修改碎片整理条件
 
 # placer_ls=('FGD' 'consolidate' 'random')
 # scheduler_ls = ('fifo' 'sjf' '')

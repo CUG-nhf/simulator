@@ -39,7 +39,7 @@ def get_available_schedulers():
 
 
 def get_available_placers():
-	return ['random', 'consolidate', 'FGD', 'None'] #'consolidateFirst', 
+	return ['random', 'consolidate', 'FGD', 'None', 'fifo', 'sjf', 'sqf', 'sdf', '1and2'] #'consolidateFirst', 
 
 
 def modify_gpu_num(df, mutation_probability=0.1):

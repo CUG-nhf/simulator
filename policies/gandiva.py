@@ -2,9 +2,9 @@ from .policy import Policy
 
 
 class Gandiva(Policy):
-	def __init__(self, trace, vc, placement, log_dir, logger, start_ts, deFrag):
+	def __init__(self, trace, vc, placement, log_dir, logger, start_ts):
 		super(Gandiva, self).__init__(
-			trace, vc, placement, log_dir, logger, start_ts, deFrag)
+			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'gandiva'
 
 
@@ -36,7 +36,8 @@ class Gandiva(Policy):
 					break
 			# Pend Job
 			# NOTE: Sort by submit time -- FIFO
-			self.que_list.sort(key=lambda x: x.__getitem__('submit_time'))
+			# self.que_list.sort(key=lambda x: x.__getitem__('submit_time'))
+			self.que_list.sort(key=lambda x: x.__getitem__('duration'))
 			que_ls = self.que_list.copy()  # Avoid list.remove() issue
 			for job in que_ls:
 				if self.gandiva_placement(job):

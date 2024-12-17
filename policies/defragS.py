@@ -7,7 +7,7 @@ class DeFragScheduler(Policy):
 		super(DeFragScheduler, self).__init__(
 			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'defragS'
-		self.job_selector = 'sqf'
+		self.job_selector = 'sdf'
 		self.sqf_min = 0
 		self.sqf_max = 0
 
@@ -186,8 +186,9 @@ class DeFragScheduler(Policy):
 	def defragmentation(self):
 		if self.time - self.last_defrag_time < 5*60:
 			return
-		if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
-			migrationMap = self._vc.defragmentation(self)
+		#if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
+		if len(self.que_list) > 0 and self._vc.vc_free_gpus() > min(self.que_list, key=lambda job: job['gpu_num'])['gpu_num']:
+			migrationMap = self._vc.defragmentation()
 			self.last_defrag_time = self.time
 			for job, source_node, target_node, job_req_gpu in migrationMap:
 				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
