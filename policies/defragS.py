@@ -177,26 +177,9 @@ class DeFragScheduler(Policy):
 		return	alpha * (node_free_gpu-job_req_gpu)/job_req_gpu \
 				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
 				+ gamma * (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min) \
-				# - (self.time - job['submit_time'] + job['duration'])/job['duration']
+				- (self.time - job['submit_time'] + job['duration'])/job['duration']
 
 	def defragmentation(self):
-		# 第一版碎片整理时机
-		# if self.time - self.last_defrag_time < 5*60:
-		# 	return
-		# if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
-		# 	migrationMap = self._vc.defragmentation()
-		# 	self.last_defrag_time = self.time
-		# 	for job, source_node, target_node, job_req_gpu in migrationMap:
-		# 		print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
-
-		# 第二版碎片整理时机
-		# if len(self.que_list) > 0 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
-		# 	migrationMap = self._vc.defragmentation()
-		# 	for job, source_node, target_node, job_req_gpu in migrationMap:
-		# 		print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')		
-
-		# 第三种碎片整理时机
 		migrationMap = self._vc.defragmentation()
 		for job, source_node, target_node, job_req_gpu in migrationMap:
 			print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
-

@@ -17,16 +17,19 @@
 # done
 
 ###################  ###################
-log='/data/nihaifeng/log/test'
+log='/data/nihaifeng/log/tmp'
 output_dir="${log}/nohup"
 mkdir -p ${output_dir}
 
 declare -a configs=(
-    "defragS sdf"
-	# "defragS fifo"
-	# "gandiva fifo"
-    # "fifo FGD"
-	# "fifo consolidate"
+	"gandiva fifo"
+    "defragS fifo"
+    "fifo FGD"
+	"fifo consolidate"
+	# "gandiva sjf"
+    # "defragS sdf"
+    # "sjf FGD"
+	# "sjf consolidate"
 )
 for config in "${configs[@]}"; do
     read -r scheduler placer <<< "$config"

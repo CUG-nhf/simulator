@@ -42,7 +42,7 @@ def get_available_placers():
 	return ['random', 'consolidate', 'FGD', 'consolidateFirst']
 
 
-def modify_gpu_num(df, mutation_probability=0.2, random_state=45):
+def modify_gpu_num(df, mutation_probability=0.1, random_state=45):
 	# Randomly increase the gpu_num for some 1 GPU Jobs 
 	gpu_num_1_rows = df[df['gpu_num'] == 1]
 	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=random_state).index
@@ -98,7 +98,7 @@ def trace_philly_process(dir, date_range):
 	# only 3 jobs are deleted
 	df = df[~df['gpu_num'].isin([6, 7])]
 
-	# Modify gpu num
+	# Modify gpu num 
 	df = modify_gpu_num(df)
 
 	# VC filter
