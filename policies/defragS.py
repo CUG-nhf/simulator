@@ -7,7 +7,6 @@ class DeFragScheduler(Policy):
 		super(DeFragScheduler, self).__init__(
 			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'defragS'
-		self.job_selector = 'sdf'
 		self.sqf_min = 0
 		self.sqf_max = 0
 
@@ -30,7 +29,8 @@ class DeFragScheduler(Policy):
 					self.end_job_num += 1
 					assert self._vc.release_resource(job['nodes'], job) == True
 					self.run_list.remove(job)
-					
+
+			self.defragmentation()
 
 			'''2. Allocate New / Pending Jobs'''
 			# New Job
@@ -44,12 +44,10 @@ class DeFragScheduler(Policy):
 					break
 
 			# Pend Job
-			if self.job_selector in ['sqf', 'fifo', 'sjf']:
+			if self._placement.split('_')[0] in ['sqf', 'fifo', 'sjf']:
 				self.pendJob2()
-			elif self.job_selector in ['sdf']:
+			elif self._placement.split('_')[0] in ['sdf']:
 				self.pendJob1()
-			
-			self.defragmentation()
 
 			'''3. Log & Result Recorder'''
 			if self.time % 10000 == 0:
@@ -64,14 +62,13 @@ class DeFragScheduler(Policy):
 
 		self.log_recorder(self._name)
 	
-
 	def pendJob2(self):
 		que_ls = self.que_list.copy()  # Avoid list.remove() issue
-		if self.job_selector == 'fifo':
+		if self._placement.split('_')[0] == 'fifo':
 			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
-		elif self.job_selector == 'sqf':
+		elif self._placement.split('_')[0] == 'sqf':
 			que_ls.sort(key=lambda x: x.__getitem__('duration') / x.__getitem__('gpu_num'))
-		elif self.job_selector == 'sjf':
+		elif self._placement.split('_')[0] == 'sjf':
 			que_ls.sort(key=lambda x: x.__getitem__('duration'))
 		for job in que_ls:
 			if self.jobPlacer(job):
@@ -99,8 +96,7 @@ class DeFragScheduler(Policy):
 			self.que_list.remove(job)
 			self.run_list.append(job)
 			job, alloc_nodes, score = self.jobSelector()
-
-
+ 
 	def jobSelector(self):
 		min_score = sys.float_info.max
 		min_job = None
@@ -111,10 +107,9 @@ class DeFragScheduler(Policy):
 			if select_flag:
 				if min_job == None or score < min_score:
 					min_job, min_score, target_node = job, score, alloc_nodes
-			
+		print(min_job,target_node, min_score)
 		return min_job, target_node, min_score
 	
-
 	def jobPlacer(self, job):
 		vc_free_gpu_num = self._vc.vc_free_gpus()
 		job_gpu_num = job['gpu_num']
@@ -181,14 +176,27 @@ class DeFragScheduler(Policy):
 		alpha, beta, gamma = 0.1, 0.9, 1
 		return	alpha * (node_free_gpu-job_req_gpu)/job_req_gpu \
 				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
-				+ gamma * (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min)
+				+ gamma * (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min) \
+				# - (self.time - job['submit_time'] + job['duration'])/job['duration']
 
 	def defragmentation(self):
+		# 第一版碎片整理时机
 		# if self.time - self.last_defrag_time < 5*60:
-		# # if self.time - self.last_defrag_time < 60:
 		# 	return
-		if len(self.que_list) > 0 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
-			migrationMap = self._vc.defragmentation()
-			self.last_defrag_time = self.time
-			for job, source_node, target_node, job_req_gpu in migrationMap:
-				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
+		# if len(self.que_list) > 5 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
+		# 	migrationMap = self._vc.defragmentation()
+		# 	self.last_defrag_time = self.time
+		# 	for job, source_node, target_node, job_req_gpu in migrationMap:
+		# 		print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
+
+		# 第二版碎片整理时机
+		# if len(self.que_list) > 0 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
+		# 	migrationMap = self._vc.defragmentation()
+		# 	for job, source_node, target_node, job_req_gpu in migrationMap:
+		# 		print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')		
+
+		# 第三种碎片整理时机
+		migrationMap = self._vc.defragmentation()
+		for job, source_node, target_node, job_req_gpu in migrationMap:
+			print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
+

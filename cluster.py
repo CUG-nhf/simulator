@@ -107,7 +107,6 @@ class VC:
 			if need_new_item:
 				job['nodes'].append({target_node.node_name: job_req_gpu})
 				
-	
 	def frag_node_list(self):
 		# 判断什么样的节点才是碎片节点
 		list = []

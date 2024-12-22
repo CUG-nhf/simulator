@@ -35,14 +35,14 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 
 
 def get_available_schedulers():
-	return ['fifo', 'sjf', 'gandiva', 'defragS'] # 'srtf', 'qssf',
+	return ['fifo', 'sjf', 'gandiva', 'defragS', 'srtf', 'qssf']
 
 
 def get_available_placers():
 	return ['random', 'consolidate', 'FGD', 'consolidateFirst']
 
 
-def modify_gpu_num(df, mutation_probability=0.1, random_state = 44):
+def modify_gpu_num(df, mutation_probability=0.2, random_state=45):
 	# Randomly increase the gpu_num for some 1 GPU Jobs 
 	gpu_num_1_rows = df[df['gpu_num'] == 1]
 	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=random_state).index
@@ -87,6 +87,7 @@ def trace_process(dir, date_range):
 
 	return df, begin
 
+
 def trace_philly_process(dir, date_range):
 	start = '2017-10-01 00:00:00'
 	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], converters={'vc': str},
@@ -94,7 +95,7 @@ def trace_philly_process(dir, date_range):
 
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
-	# only 3 jobs deleted
+	# only 3 jobs are deleted
 	df = df[~df['gpu_num'].isin([6, 7])]
 
 	# Modify gpu num
@@ -182,9 +183,7 @@ def cluster_concatenate(policy, placer, log_dir, vc_dict):
 	if not os.path.exists(log_dir+'/all'):
 		os.mkdir(log_dir+'/all')
 
-	# vc_dict = pd.read_pickle(dir+'/vc_dict_homo.pkl')
 	vcs = list(vc_dict.keys())
-
 	'''Log'''
 	cluster_log = pd.DataFrame()
 	for vc in vcs:
@@ -226,7 +225,6 @@ def cluster_analysis(scheduler, placer, log_dir, vc_dict):
 		prefix = f'{scheduler}_{placer}'
 		prefix_list.append(prefix)
 
-	# vc_dict = pd.read_pickle(dir+'/vc_dict_homo.pkl')
 	vcs = list(vc_dict.keys())
 	vcs.append('all')
 
@@ -246,5 +244,5 @@ def cluster_analysis(scheduler, placer, log_dir, vc_dict):
 
 if __name__ == '__main__' :
 	vc_dict = pd.read_pickle('./data/Philly' + '/vc_dict_homo.pkl')
-	for policy in get_available_schedulers():
-			cluster_concatenate(policy, 'consolidate', '../log/Philly', vc_dict)
+	cluster_concatenate("defragS", "sdf_PPT65", "/data/nihaifeng/log/test/Philly_defragS_sdf_PPT65", vc_dict)
+	cluster_analysis("defragS", "sdf_PPT65", "/data/nihaifeng/log/test/Philly_defragS_sdf_PPT65", vc_dict)

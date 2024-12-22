@@ -16,21 +16,19 @@
 # 	nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test/deFrag' -p="$placer" --sweep -d > "../nohup/${placer}_DeFrag.out" &
 # done
 
+###################  ###################
+log='/data/nihaifeng/log/test'
+output_dir="${log}/nohup"
+mkdir -p ${output_dir}
 
-###################  这次运行的是把修改碎片整理时机 ###################
-# placer='dt'
-# scheduler='defragS'
-# nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/PPT_51' -p="$placer" -s=${scheduler} > ../nohup/${scheduler}_${placer}.out & 
-
-# def defragmentation(self): 
-# 		if len(self.que_list) > 0 and self._vc.vc_free_gpus() > self.que_list[0]['gpu_num']:
-# 			migrationMap = self._vc.defragmentation()
-# 			self.last_defrag_time = self.time
-# 			for job, source_node, target_node, job_req_gpu in migrationMap:
-# 				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')
-
-
-###################  这次运行的修改随机种子 42 -> rsXX ###################
-placer='rs50'
-scheduler='defragS'
-nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/PPT_51' -p="$placer" -s=${scheduler} > ../nohup/${scheduler}_${placer}.out & 
+declare -a configs=(
+    "defragS sdf"
+	# "defragS fifo"
+	# "gandiva fifo"
+    # "fifo FGD"
+	# "fifo consolidate"
+)
+for config in "${configs[@]}"; do
+    read -r scheduler placer <<< "$config"
+    nohup python simulator.py -e='Philly' -t='./data/Philly' -l=${log} -s="${scheduler}" -p="${placer}" > ${output_dir}/${scheduler}_${placer}.out &
+done

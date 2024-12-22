@@ -1,5 +1,6 @@
 import pandas as pd
 import time
+from datetime import datetime
 import os
 import argparse
 import multiprocessing
@@ -9,6 +10,10 @@ from estimators import NaiveEstimator, LGBEstimator, CombinedEstimator, PhillyEs
 os.environ['NUMEXPR_MAX_THREADS'] = str(os.cpu_count())
 
 def main(args):
+	
+	start_time =  datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+	print("start time:", start_time)
+
 	code_start = time.perf_counter()
 
 	'''Logger Setting'''
@@ -99,6 +104,17 @@ def main(args):
 	
 	logger.info(
 		f'Execution Time: {round(time.perf_counter() - code_start, 2)}s')
+	
+	end_time =  datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+	print("start time:", end_time)
+
+	# 计算时间差
+	end_time_dt = datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
+	start_time_dt = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+	time_difference = end_time_dt - start_time_dt
+
+	# 输出时间差
+	print("时间差:", time_difference)
 
 
 if __name__ == '__main__':

@@ -21,8 +21,6 @@ class ShortestRemainingTimeFirst(Policy):
 					self.end_job_num += 1
 					assert self._vc.release_resource(job['nodes'], job) == True
 					self.run_list.remove(job)
-				else:
-					job['remain'] -= 1
 
 			'''2. Check New Jobs '''
 			for idx in range(prev_index, self.total_job_num):

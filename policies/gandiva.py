@@ -36,8 +36,11 @@ class Gandiva(Policy):
 					break
 			# Pend Job
 			# NOTE: Sort by submit time -- FIFO
-			# self.que_list.sort(key=lambda x: x.__getitem__('submit_time'))
-			self.que_list.sort(key=lambda x: x.__getitem__('duration'))
+			if self._placement == "sjf":
+				self.que_list.sort(key=lambda x: x.__getitem__('duration'))
+			elif self._placement == "fifo":
+				self.que_list.sort(key=lambda x: x.__getitem__('submit_time'))
+				
 			que_ls = self.que_list.copy()  # Avoid list.remove() issue
 			for job in que_ls:
 				if self.gandiva_placement(job):
