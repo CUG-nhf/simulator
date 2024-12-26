@@ -34,14 +34,14 @@ def main(args):
 	else:
 		if 'Sept' in args.experiment_name:
 			trace_range = ('2020-09-01 00:00:00', '2020-09-26 23:59:00')
-			trace_df, start_ts = utils.trace_process(
-				args.trace_dir, trace_range, vc_dict)
+		elif 'June' in args.experiment_name:
+			trace_range = ('2020-06-01 00:00:00', '2020-06-30 23:59:00')
 		elif 'July' in args.experiment_name:
 			trace_range = ('2020-07-01 00:00:00', '2020-07-31 23:59:00')
-			trace_df, start_ts = utils.trace_process(
-				args.trace_dir, trace_range, vc_dict)
 		else:
 			raise ValueError
+		trace_df, start_ts = utils.trace_process(args.trace_dir, trace_range, vc_dict)
+		
 
 	# Construct a Trace object composed of Jobs
 	trace = utils.trace_parser(trace_df)

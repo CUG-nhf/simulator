@@ -9,12 +9,13 @@
 # python simulator.py -e='Venus_Sept' -t='./data/Venus'
 
 
-###################           ###################
-log='/data/nihaifeng/log/test'
+###################   tmp 是 June  tese is July        ###################
+log='/data/nihaifeng/log/Sept'
+mkdir -p ${log}
 output_dir="${log}/nohup"
 mkdir -p ${output_dir}
  
-months='July'
+months='Sept'  # June July Sept
 experiments=(
 	'Uranus' 
 	'Saturn' 
@@ -23,10 +24,6 @@ experiments=(
 )
 
 declare -a configs=(
-	# "gandiva fifo"
-    # "defragS fifo"
-    # "fifo FGD"
-	# "fifo consolidate"
 	"gandiva sjf"
     "defragS sdf"
     "sjf FGD"
@@ -53,3 +50,4 @@ for experiment in "${experiments[@]}"; do
             --mutation > "${output_dir}/${experiment_name}_${scheduler}_${placer}.out" &
     done
 done
+#  --mutation: This parameter Only has effect on Philly

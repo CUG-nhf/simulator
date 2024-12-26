@@ -74,13 +74,16 @@ def trace_process(dir, date_range, vc_dict):
 	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['job_id', 'user', 'vc', 'gpu_num',
 																				   'cpu_num', 'state', 'submit_time', 'duration'])
 	df.rename(columns={'job_id':'jobname'}, inplace=True)
-	
-	# Consider gpu jobs only
-	df = df[df['gpu_num'] > 0]
-	df = df[~df['gpu_num'].isin([3, 5, 6, 7, 14, 30])] # Drop 0.3% jobs for Sept and 0.2% for July
 
 	# VC filter
 	df = df[df['vc'].isin(vc_dict.keys())]
+	
+	# Consider gpu jobs only
+	df = df[df['gpu_num'] > 0]
+	df = df[~df['gpu_num'].isin([3, 5, 6, 7, 14, 21, 30])] # Drop 0.3% jobs for Sept, 0.2% for July and Zero for June
+	
+	# Drop jobs with error GPUs
+	df = df.loc[df.apply(lambda row: row['gpu_num'] <= vc_dict[row['vc']] * 8, axis=1)]
 
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
 	df['submit_time'] = df['submit_time'].apply(
