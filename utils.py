@@ -42,16 +42,34 @@ def get_available_placers():
 	return ['random', 'consolidate', 'FGD', 'consolidateFirst']
 
 
-def modify_gpu_num(df, mutation_probability=0.1, random_state=45):
+def modify_gpu_num(df, vc_dict, mutation_probability=0.1, random_state=45):
+	# 合并两个小集群
+	df.loc[df['vc'] == 'ed69ec', 'vc'] = '103959'
+	vc_dict['103959'] += vc_dict['ed69ec']
+	del vc_dict['ed69ec']
+	'''
+	6214e9 64
+	7f04ca 32
+	11cb48 16
+	b436b2 64
+	ee9e8c 64
+	e13805 16
+	6c71a0 32
+	2869ce 16
+	ed69ec 8
+	103959 8
+	0e4a51 32
+	'''
+
 	# Randomly increase the gpu_num for some 1 GPU Jobs 
 	gpu_num_1_rows = df[df['gpu_num'] == 1]
 	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=random_state).index
 	np.random.seed(random_state)
 	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 16, 32, 64], size=len(change_indices))
-	return df
+	return df, vc_dict
 
 
-def trace_process(dir, date_range):
+def trace_process(dir, date_range, vc_dict):
 	start = '2020-04-01 00:00:00'
 	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['job_id', 'user', 'vc', 'gpu_num',
 																				   'cpu_num', 'state', 'submit_time', 'duration'])
@@ -59,11 +77,10 @@ def trace_process(dir, date_range):
 	
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
+	df = df[~df['gpu_num'].isin([3, 5, 6, 7, 14, 30])] # Drop 0.3% jobs for Sept and 0.2% for July
 
 	# VC filter
-	vc_dict = pd.read_pickle(dir+'/vc_dict_homo.pkl')
-	vc_list = vc_dict.keys()
-	df = df[df['vc'].isin(vc_list)]
+	df = df[df['vc'].isin(vc_dict.keys())]
 
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
 	df['submit_time'] = df['submit_time'].apply(
@@ -88,7 +105,7 @@ def trace_process(dir, date_range):
 	return df, begin
 
 
-def trace_philly_process(dir, date_range):
+def trace_philly_process(dir, date_range, vc_dict, need_mutation=False, mutation_probability=0.1):
 	start = '2017-10-01 00:00:00'
 	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], converters={'vc': str},
 				  usecols=['user', 'vc', 'jobname', 'gpu_num', 'state', 'submit_time', 'duration'])
@@ -99,28 +116,11 @@ def trace_philly_process(dir, date_range):
 	df = df[~df['gpu_num'].isin([6, 7])]
 
 	# Modify gpu num 
-	df = modify_gpu_num(df)
-
-	# VC filter
-	vc_dict = pd.read_pickle(dir+'/vc_dict_homo.pkl')
-	vc_list = vc_dict.keys()
-	df = df[df['vc'].isin(vc_list)]
-	'''
-	6214e9 64
-	7f04ca 32
-	11cb48 16
-	b436b2 64
-	ee9e8c 64
-	e13805 16
-	6c71a0 32
-	2869ce 16
-	ed69ec 8
-	103959 8
-	0e4a51 32
-	'''
+	if need_mutation:
+		df, vc_dict = modify_gpu_num(df, vc_dict, mutation_probability)
 	
-	# 合并两个小集群
-	df.loc[df['vc'] == 'ed69ec', 'vc'] = '103959'
+	# VC filter
+	df = df[df['vc'].isin(vc_dict.keys())]
 
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
 	df['submit_time'] = df['submit_time'].apply(

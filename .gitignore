@@ -1,6 +1,9 @@
 # 忽略 __pycache__ 目录
 data/Philly
-
 data/Test
+data/Earth
+data/Saturn
+data/Uranus
+data/Venus
 
 **/__pycache__

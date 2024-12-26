@@ -8,30 +8,48 @@
 
 # python simulator.py -e='Venus_Sept' -t='./data/Venus'
 
-# placer_ls=('FGD' 'consolidate' 'random')
-# scheduler_ls = ('fifo' 'sjf' '')
-# for placer in "${placer_ls[@]}"; do
-# 	# 使用当前的 placer 运行 nohup 命令
-#     nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test/noDeFrag' -p="$placer" --sweep > "../nohup/${placer}_noDeFrag.out" &
-# 	nohup python simulator.py -e='Philly' -t='./data/Philly' -l='/data/nihaifeng/log/test/deFrag' -p="$placer" --sweep -d > "../nohup/${placer}_DeFrag.out" &
-# done
 
-###################  ###################
-log='/data/nihaifeng/log/tmp'
+###################           ###################
+log='/data/nihaifeng/log/test'
 output_dir="${log}/nohup"
 mkdir -p ${output_dir}
+ 
+months='July'
+experiments=(
+	'Uranus' 
+	'Saturn' 
+	'Earth' 
+	'Venus'
+)
 
 declare -a configs=(
-	"gandiva fifo"
-    "defragS fifo"
-    "fifo FGD"
-	"fifo consolidate"
-	# "gandiva sjf"
-    # "defragS sdf"
-    # "sjf FGD"
-	# "sjf consolidate"
+	# "gandiva fifo"
+    # "defragS fifo"
+    # "fifo FGD"
+	# "fifo consolidate"
+	"gandiva sjf"
+    "defragS sdf"
+    "sjf FGD"
+	"sjf consolidate"
 )
-for config in "${configs[@]}"; do
-    read -r scheduler placer <<< "$config"
-    nohup python simulator.py -e='Philly' -t='./data/Philly' -l=${log} -s="${scheduler}" -p="${placer}" > ${output_dir}/${scheduler}_${placer}.out &
+
+for experiment in "${experiments[@]}"; do
+    if [ "$experiment" == "Philly" ]; then
+        experiment_name="$experiment"
+    else
+        experiment_name="${experiment}_${months}"
+    fi
+
+    for config in "${configs[@]}"; do
+        scheduler=$(echo "$config" | awk '{print $1}')
+        placer=$(echo "$config" | awk '{print $2}')
+
+        nohup python simulator.py \
+            -e="$experiment_name" \
+            -t="/data/nihaifeng/code/HeliosArtifact/simulator/data/${experiment}" \
+            -l="${log}" \
+            -s="${scheduler}" \
+            -p="${placer}" \
+            --mutation > "${output_dir}/${experiment_name}_${scheduler}_${placer}.out" &
+    done
 done

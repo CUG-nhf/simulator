@@ -40,6 +40,7 @@ class VC:
 		self.node_g = {1:self.node_g1, 2:self.node_g2, 4:self.node_g4}
 
 	def init_vc_node(self):
+		self.node_list = []
 		for i in range(self.node_num):
 			node = Node(i, self._num_gpus_per_node, self._num_gpus_per_node)
 			self.node_list.append(node)

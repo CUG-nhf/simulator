@@ -40,7 +40,7 @@ def main(args):
         del dic['vcxqr']  # Zero nodes
         del dic['vcsgw']  # Zero nodes
 
-        with open(f'./{cluster}/vc_dict.pkl', 'wb') as f:
+        with open(f'./{cluster}/vc_dict_homo.pkl', 'wb') as f:
             pickle.dump(dic, f, pickle.HIGHEST_PROTOCOL)
 
     if cluster == 'Uranus' and date == 'Sept':
@@ -68,7 +68,7 @@ def main(args):
         del dic['vcsBT']  # Merge to vcUV3
         del dic['vcygX']  # Merge to vcUV3
 
-        with open(f'./{cluster}/vc_dict.pkl', 'wb') as f:
+        with open(f'./{cluster}/vc_dict_homo.pkl', 'wb') as f:
             pickle.dump(dic, f, pickle.HIGHEST_PROTOCOL)
 
     if cluster == 'Earth' and date == 'Sept':
@@ -92,7 +92,7 @@ def main(args):
 
         del dic['vcxS0']  # Merge to vc3sl
 
-        with open(f'./{cluster}/vc_dict.pkl', 'wb') as f:
+        with open(f'./{cluster}/vc_dict_homo.pkl', 'wb') as f:
             pickle.dump(dic, f, pickle.HIGHEST_PROTOCOL)
 
     if cluster == 'Venus' and date == 'Sept':
@@ -117,7 +117,7 @@ def main(args):
         del dic['vccJW']  # Merge to vcKeu
         del dic['vcP2J']  # Merge to vchA3
 
-        with open(f'./{cluster}/vc_dict.pkl', 'wb') as f:
+        with open(f'./{cluster}/vc_dict_homo.pkl', 'wb') as f:
             pickle.dump(dic, f, pickle.HIGHEST_PROTOCOL)
 
     if cluster == 'Philly':
