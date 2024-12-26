@@ -83,7 +83,7 @@ def trace_process(dir, date_range, vc_dict):
 	# Drop jobs with error GPUs
 	df = df.loc[(df['gpu_num'] % 8).isin([0, 1, 2, 4])]  # Drop 0.3% jobs for Sept, 0.2% for July and Zero for June
 	df = df.loc[df['gpu_num'] <= df['vc'].map(vc_dict) * 8]
-	
+
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
 	df['submit_time'] = df['submit_time'].apply(
 		lambda x: int(datetime.datetime.timestamp(pd.Timestamp(x))))
@@ -105,9 +105,9 @@ def trace_process(dir, date_range, vc_dict):
 	df.reset_index(inplace=True, drop=True)
 
 	# Drop VCs with no jobs
-	vc_counts = df['vc'].value_counts()
-	vc_dict = {vc: value for vc, value in vc_dict.items() if vc in vc_counts}
-	print(vc_dict)
+	for vc in list(vc_dict.keys()).copy():
+		if (df[df['vc'] == vc].shape[0] == 0):
+			del vc_dict[vc]
 	
 	return df, begin
 
