@@ -77,14 +77,13 @@ def trace_process(dir, date_range, vc_dict):
 
 	# VC filter
 	df = df[df['vc'].isin(vc_dict.keys())]
-	
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
-	df = df[~df['gpu_num'].isin([3, 5, 6, 7, 14, 21, 30])] # Drop 0.3% jobs for Sept, 0.2% for July and Zero for June
-	
-	# Drop jobs with error GPUs
-	df = df.loc[df.apply(lambda row: row['gpu_num'] <= vc_dict[row['vc']] * 8, axis=1)]
 
+	# Drop jobs with error GPUs
+	df = df.loc[(df['gpu_num'] % 8).isin([0, 1, 2, 4])]  # Drop 0.3% jobs for Sept, 0.2% for July and Zero for June
+	df = df.loc[df['gpu_num'] <= df['vc'].map(vc_dict) * 8]
+	
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
 	df['submit_time'] = df['submit_time'].apply(
 		lambda x: int(datetime.datetime.timestamp(pd.Timestamp(x))))
@@ -101,10 +100,15 @@ def trace_process(dir, date_range, vc_dict):
 	begin = (pd.Timestamp(date_range[0])-pd.Timestamp(start)).total_seconds()
 	end = (pd.Timestamp(date_range[1])-pd.Timestamp(start)).total_seconds()
 	df = df[(df['submit_time'] >= begin) & (df['submit_time'] <= end)]
-
+	
 	df.sort_values(by='submit_time', inplace=True)
 	df.reset_index(inplace=True, drop=True)
 
+	# Drop VCs with no jobs
+	vc_counts = df['vc'].value_counts()
+	vc_dict = {vc: value for vc, value in vc_dict.items() if vc in vc_counts}
+	print(vc_dict)
+	
 	return df, begin
 
 
