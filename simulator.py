@@ -38,6 +38,8 @@ def main(args):
 			trace_range = ('2020-06-01 00:00:00', '2020-06-30 23:59:00')
 		elif 'July' in args.experiment_name:
 			trace_range = ('2020-07-01 00:00:00', '2020-07-31 23:59:00')
+		elif 'all' in args.experiment_name:
+			trace_range = ('2020-04-01 00:00:00', '2020-09-26 23:59:00')
 		else:
 			raise ValueError
 		trace_df, start_ts = utils.trace_process(args.trace_dir, trace_range, vc_dict)

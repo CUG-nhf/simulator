@@ -2,8 +2,9 @@
 
 months=(
 	# 'Sept'
-	'July'
-	'June'
+	# 'July'
+	# 'June'
+	'all'
 )
 
 experiments=(
