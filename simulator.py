@@ -1,6 +1,5 @@
 import pandas as pd
 import time
-from datetime import datetime
 import os
 import argparse
 import multiprocessing
@@ -10,10 +9,6 @@ from estimators import NaiveEstimator, LGBEstimator, CombinedEstimator, PhillyEs
 os.environ['NUMEXPR_MAX_THREADS'] = str(os.cpu_count())
 
 def main(args):
-	
-	start_time =  datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-	print("start time:", start_time)
-
 	code_start = time.perf_counter()
 
 	'''Logger Setting'''
@@ -25,12 +20,14 @@ def main(args):
 
 	'''Infrastructure & Trace Initialization'''
 	vc_dict = pd.read_pickle(args.trace_dir+'/vc_dict_homo.pkl')
-
+	
 	# Construct trace DataFrame from cluster_log.csv
 	if 'Philly' in args.experiment_name:
 		trace_range = ('2017-10-01 00:00:00', '2017-11-30 23:59:00')
 		trace_df, start_ts = utils.trace_philly_process(
 			args.trace_dir, trace_range, vc_dict, args.mutation)
+	elif 'ali20' in args.experiment_name:
+		trace_df, start_ts = utils.trace_ali20_process(args.trace_dir)
 	else:
 		if 'Sept' in args.experiment_name:
 			trace_range = ('2020-09-01 00:00:00', '2020-09-26 23:59:00')
@@ -44,10 +41,9 @@ def main(args):
 			raise ValueError
 		trace_df, start_ts = utils.trace_process(args.trace_dir, trace_range, vc_dict)
 		
-
 	# Construct a Trace object composed of Jobs
 	trace = utils.trace_parser(trace_df)
-
+	
 	CLUSTER = cluster.Cluster(
 		vc_dict, args.num_gpus_per_node, args.num_cpus_per_node)
 
@@ -106,17 +102,6 @@ def main(args):
 	
 	logger.info(
 		f'Execution Time: {round(time.perf_counter() - code_start, 2)}s')
-	
-	end_time =  datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-	print("start time:", end_time)
-
-	# 计算时间差
-	end_time_dt = datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S")
-	start_time_dt = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
-	time_difference = end_time_dt - start_time_dt
-
-	# 输出时间差
-	print("时间差:", time_difference)
 
 
 if __name__ == '__main__':

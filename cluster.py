@@ -72,18 +72,25 @@ class VC:
 		return True
 
 	def consolidate_node_num(self):
-		list = []
+		res = 0
 		for node in self.node_list:
-			if node.job_num == 1:
-				list.append(node)
-		return len(list)
+			if node.free_gpus == 0:
+				res += 1
+		return res
 
-	def shared_node_num(self):
-		list = []
+	def partial_node_num(self):
+		res = 0
 		for node in self.node_list:
-			if node.job_num > 1:
-				list.append(node)
-		return len(list)
+			if 0 < node.free_gpus < node.num_gpus:
+				res += 1
+		return res
+	
+	def free_node_num(self):
+		res = 0
+		for node in self.node_list:
+			if node.free_gpus == node.num_gpus:
+				res += 1
+		return res
 	
 	'''DeFragmentation'''
 

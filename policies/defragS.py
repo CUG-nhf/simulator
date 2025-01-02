@@ -10,16 +10,21 @@ class DeFragScheduler(Policy):
 		self.sqf_min = 0
 		self.sqf_max = 0
 
-		for job in self.trace.job_list:
-			sqf = job['remain']/job['gpu_num']
-			self.sqf_max = max(self.sqf_max, sqf)
-			self.sqf_min = min(self.sqf_min, sqf)
+		if self._placement == 'sdf':
+			self.calculateFitnessScore = self.calculateFitnessScore_sdf
+			for job in self.trace.job_list:
+				sqf = job['remain']/job['gpu_num']
+				self.sqf_max = max(self.sqf_max, sqf)
+				self.sqf_min = min(self.sqf_min, sqf)
+		else:
+			self.calculateFitnessScore = self.calculateFitnessScore_other
 
 	def simulate(self):
 		prev_index = 0
 
 		while self.end_job_num != self.total_job_num:
 
+			need_defrag = False
 			'''1. Check & Release End Jobs'''
 			run_ls = self.run_list.copy()  # Avoid list.remove() issue
 			for job in run_ls:
@@ -29,8 +34,9 @@ class DeFragScheduler(Policy):
 					self.end_job_num += 1
 					assert self._vc.release_resource(job['nodes'], job) == True
 					self.run_list.remove(job)
-
-			self.defragmentation()
+					need_defrag = True
+			if need_defrag:
+				self.defragmentation()
 
 			'''2. Allocate New / Pending Jobs'''
 			# New Job
@@ -44,10 +50,13 @@ class DeFragScheduler(Policy):
 					break
 
 			# Pend Job
-			if self._placement.split('_')[0] in ['sqf', 'fifo', 'sjf']:
-				self.pendJob2()
-			elif self._placement.split('_')[0] in ['sdf']:
-				self.pendJob1()
+			if self._placement in ['fifo', 'sjf', 'dynamic']:
+				need_defrag =  self.pendJob2()
+			elif self._placement in ['sdf']:
+				need_defrag = self.pendJob1()
+			
+			if need_defrag:
+				self.defragmentation()
 
 			'''3. Log & Result Recorder'''
 			if self.time % 10000 == 0:
@@ -62,14 +71,22 @@ class DeFragScheduler(Policy):
 
 		self.log_recorder(self._name)
 	
+	def calScore(self, job):
+		window_size = 5
+		if len(self.gpu_utilization) < window_size or sum(self.gpu_utilization[-window_size:])/window_size < 0.8:
+			return job['submit_time']
+		else:
+			return job['gpu_num']
+
 	def pendJob2(self):
+		flag = False
 		que_ls = self.que_list.copy()  # Avoid list.remove() issue
-		if self._placement.split('_')[0] == 'fifo':
+		if self._placement == 'fifo':
 			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
-		elif self._placement.split('_')[0] == 'sqf':
-			que_ls.sort(key=lambda x: x.__getitem__('duration') / x.__getitem__('gpu_num'))
-		elif self._placement.split('_')[0] == 'sjf':
+		elif self._placement == 'sjf':
 			que_ls.sort(key=lambda x: x.__getitem__('duration'))
+		elif self._placement == 'dynamic':
+			que_ls.sort(key=lambda x: self.calScore(x))
 		for job in que_ls:
 			if self.jobPlacer(job):
 				job['start_time'] = self.time
@@ -78,13 +95,15 @@ class DeFragScheduler(Policy):
 				job['status'] = 'run'
 				self.que_list.remove(job)
 				self.run_list.append(job)
+				flag = True
 			else:
 				break
+		return	flag
 		
 	def pendJob1(self):
-		job, alloc_nodes, score = self.jobSelector()
+		flag = False
+		job, alloc_nodes = self.jobSelector()
 		while job != None:
-			print(f"score: {score}")
 			for (node, req_gpu) in alloc_nodes:
 				node.allocate_gpu(req_gpu)
 				node.add_job(job)
@@ -95,7 +114,9 @@ class DeFragScheduler(Policy):
 			job['status'] = 'run'
 			self.que_list.remove(job)
 			self.run_list.append(job)
-			job, alloc_nodes, score = self.jobSelector()
+			job, alloc_nodes = self.jobSelector()
+			flag = True
+		return flag
  
 	def jobSelector(self):
 		min_score = sys.float_info.max
@@ -107,8 +128,7 @@ class DeFragScheduler(Policy):
 			if select_flag:
 				if min_job == None or score < min_score:
 					min_job, min_score, target_node = job, score, alloc_nodes
-		print(min_job,target_node, min_score)
-		return min_job, target_node, min_score
+		return min_job, target_node
 	
 	def jobPlacer(self, job):
 		vc_free_gpu_num = self._vc.vc_free_gpus()
@@ -172,7 +192,12 @@ class DeFragScheduler(Policy):
 
 		return True, alloc_nodes, node_score
 	
-	def calculateFitnessScore(self, node, job, node_free_gpu, job_req_gpu):
+	def calculateFitnessScore_other(self, node, job, node_free_gpu, job_req_gpu):
+		alpha, beta = 0.1, 0.9
+		return	alpha * (node_free_gpu-job_req_gpu)/job_req_gpu \
+				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
+		
+	def calculateFitnessScore_sdf(self, node, job, node_free_gpu, job_req_gpu):
 		alpha, beta, gamma = 0.1, 0.9, 1
 		return	alpha * (node_free_gpu-job_req_gpu)/job_req_gpu \
 				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \

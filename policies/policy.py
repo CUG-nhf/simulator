@@ -15,7 +15,6 @@ class Policy:
 		self.logger = logger
 		self.start_ts = start_ts
 		self.jobPopulation =  self.calculateJobPopulation()
-		self.last_defrag_time = 0
 
 		self.total_job_num = self.trace.job_num()
 		self.que_list = []  # Pending Jobs
@@ -33,8 +32,10 @@ class Policy:
 		self.pend_job_num_less_8 = []
 		self.total_node_num = []
 		self.consolidate_node_num = []
-		self.shared_node_num = []
-		self.fragmentation_ratio = []
+		self.partial_node_num = []
+		self.free_node_num = []
+		self.frag_gpu_num = []
+		self.gpu_utilization = []
 
 	def job_placer(self, job):
 		if self._placement == 'consolidate':
@@ -61,7 +62,6 @@ class Policy:
 			f'{self._vc_name} | Time: {int(self.time)} | Total Job: {self.total_job_num} | End job: {self.end_job_num} | Running job: {len(self.run_list)} | Pending job: {len(self.que_list)}')
 
 	'''Simulation Result Recorder'''
-
 	def log_recorder(self, policy_name):
 		if not os.path.exists(os.path.join(self._log_dir, self._vc_name)):
 			os.mkdir(os.path.join(self._log_dir, self._vc_name))
@@ -91,14 +91,14 @@ class Policy:
 					'pending_job_num_less_8': self.pend_job_num_less_8,
 					'total_node_num': self.total_node_num,
 					'consolidate_node_num': self.consolidate_node_num,
-					'shared_node_num': self.shared_node_num,
-					'fragmentation_ration': self.fragmentation_ratio
+					'partial_node_num': self.partial_node_num,
+					'free_node_num': self.free_node_num,
+					'frag_gpu_num': self.frag_gpu_num,
+					'gpu_utilization': self.gpu_utilization
 					}
 		seq = pd.DataFrame(seq_dict)
-		seq['gpu_utilization'] = ((seq['total_gpu_num'] - seq['idle_gpu_num']) /
-								  seq['total_gpu_num']).round(3)
-		seq.to_csv(
-			f'{self._log_dir}/{self._vc_name}/{policy_name}_{self._placement}_{self._vc_name}_seq.csv', index=False)
+		seq['fragmentation_ratio'] = (seq['frag_gpu_num']/seq['total_gpu_num']).round(3)
+		seq.to_csv(f'{self._log_dir}/{self._vc_name}/{policy_name}_{self._placement}_{self._vc_name}_seq.csv', index=False)
 		
 
 	def pend_job_num_small(self):
@@ -112,18 +112,18 @@ class Policy:
 		self.time_list.append(self.time)
 		self.total_gpu_num.append(self._vc.total_gpus)
 		self.idle_gpu_num.append(self._vc.vc_free_gpus())
-		self.pend_gpu_num.append(sum(job.__getitem__('gpu_num')
-									 for job in self.que_list))
 		self.run_job_num.append(len(self.run_list))
 		self.pend_job_num.append(len(self.que_list))
 		self.pend_job_num_less_8.append(self.pend_job_num_small())
+		self.pend_gpu_num.append(sum(job.__getitem__('gpu_num') for job in self.que_list))
 		self.total_node_num.append(self._vc.node_num)
 		self.consolidate_node_num.append(self._vc.consolidate_node_num())
-		self.shared_node_num.append(self._vc.shared_node_num())
-		self.fragmentation_ratio.append(self.get_frag_ratio_1())
+		self.partial_node_num.append(self._vc.partial_node_num())
+		self.free_node_num.append(self._vc.free_node_num())
+		self.frag_gpu_num.append(self.get_frag_gpus_1())
+		self.gpu_utilization.append(round((self._vc.total_gpus - self._vc.vc_free_gpus())/self._vc.total_gpus, 3))
 
 	"Fragmentation Ratio"
-
 	def process_running_job(self):
 		for job in self.run_list:
 			job['remain'] -= 1
@@ -145,21 +145,18 @@ class Policy:
 
 	# 第一种碎片率计算方式：
 	# Fragmentation refers to the free GPUs of a node whose number of free GPUs is not equal to its total number of GPUs.
-	def get_frag_ratio_1(self):
+	def get_frag_gpus_1(self):
 		frag_gpu_num = 0
-		total_gpu_num = 0
 		for node in self._vc.node_list:
-			total_gpu_num += node.num_gpus
 			if node.free_gpus < node.num_gpus:
 				frag_gpu_num += node.free_gpus
-		return round(frag_gpu_num / total_gpu_num, 2)
+		return frag_gpu_num
 	
 	#第二种碎片率计算方式：FGD碎片/total卡数
-	def get_frag_ratio_2(self):
+	def get_frag_gpus(self):
 		fragFun = FragmentationGradientDescent(self._vc, self.jobPopulation).nodeGpuFragAmount
 		frag_gpu_num = 0
-		total_gpu_num = 0
 		for node in self._vc.node_list:
-			total_gpu_num += node.num_gpus
-			frag_gpu_num += fragFun(node.free_gpus)
-		return round(frag_gpu_num / total_gpu_num, 2)
+			fragAmount = fragFun(node.free_gpus)
+			frag_gpu_num += fragAmount
+		return frag_gpu_num

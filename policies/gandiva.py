@@ -7,7 +7,6 @@ class Gandiva(Policy):
 			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'gandiva'
 
-
 	def simulate(self):
 		prev_index = 0
 
@@ -65,7 +64,6 @@ class Gandiva(Policy):
 			self.process_running_job()
 
 		self.log_recorder(self._name)
-
 
 	def gandiva_job_migration(self):
 		'''
@@ -173,8 +171,19 @@ class Gandiva(Policy):
 			return True, alloc_nodes
 
 		'''assign partially idle nodes -- Gandiva'''
-		assert partial_node_num in self._vc.node_g
-		node_g_list = self._vc.node_g[partial_node_num]
+		map_partill_node_num = {
+			1: 1,
+			2: 2,
+			3: 1,
+			4: 4,
+			5: 1,
+			6: 2,
+			7: 1,
+		}
+		assert map_partill_node_num[partial_node_num] in self._vc.node_g
+		node_g_list = self._vc.node_g[map_partill_node_num[partial_node_num]]
+		# assert partial_node_num in self._vc.node_g
+		# node_g_list = self._vc.node_g[partial_node_num]
 
 		# Same affinity with free GPUs
 		if len(node_g_list) > 0:

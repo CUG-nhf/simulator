@@ -2,6 +2,7 @@ import sys
 import os
 import logging
 import datetime
+import time
 import numpy as np
 import pandas as pd
 from job import Job, Trace
@@ -155,6 +156,23 @@ def trace_philly_process(dir, date_range, vc_dict, need_mutation=False, mutation
 	
 	return df, begin
 
+def trace_ali20_process(dir):
+	df = pd.read_csv(dir+'/cluster_log.csv')
+	df.drop(columns=['inst_id', 'user',], inplace=True)
+	df.rename(columns={'job_name':'jobname'}, inplace=True)
+	df.rename(columns={'start_time':'submit_time'}, inplace=True)
+
+	df['remain'] = df['duration']
+	df[['start_time', 'end_time']] = sys.maxsize
+	df[['ckpt_times', 'queue', 'jct']] = 0
+	df['status'] = None
+	df['vc'] = 'ali20'
+
+	df.sort_values(by='submit_time', inplace=True)
+	df.reset_index(inplace=True, drop=True)
+
+	return df, 0
+
 
 def trace_parser(df):
 	trace = Trace()
@@ -166,21 +184,19 @@ def trace_parser(df):
 
 
 def logger_init(file):
+	os.environ['TZ'] = 'Asia/Shanghai'
+	time.tzset() 
 	logger = logging.getLogger()
 	handler_file = logging.FileHandler(f'{file}.log', 'w')
-	# handler_stream = logging.StreamHandler()  # sys.stdout
 
 	logger.setLevel(logging.INFO)
 	handler_file.setLevel(logging.INFO)
-	# handler_stream.setLevel(logging.INFO)
 
 	formatter = logging.Formatter(
 		'%(asctime)s | %(processName)s | %(message)s', datefmt='%Y %b %d %H:%M:%S')
 	handler_file.setFormatter(formatter)
-	# handler_stream.setFormatter(formatter)
 
 	logger.addHandler(handler_file)
-	# logger.addHandler(handler_stream)
 
 	return logger
 
@@ -201,8 +217,10 @@ def cluster_concatenate(policy, placer, log_dir, vc_dict):
 
 	'''Seq'''
 	cluster_seq = pd.DataFrame()
-	add_list = ['total_gpu_num', 'idle_gpu_num', 'pending_gpu_num', 'running_gpujob_num', 'pending_gpujob_num',
-				'pending_job_num_less_8', 'total_node_num', 'consolidate_node_num', 'shared_node_num','fragmentation_ration']
+	add_list = ['total_gpu_num', 'idle_gpu_num', 'pending_gpu_num', 
+			 	'running_gpujob_num', 'pending_gpujob_num', 'pending_job_num_less_8', 
+				'total_node_num', 'consolidate_node_num', 'partial_node_num', 'free_node_num',
+				'frag_gpu_num']
 	for vc in vcs:
 		vc_seq = pd.read_csv(f'{log_dir}/{vc}/{prefix}_{vc}_seq.csv')
 		if len(cluster_seq) == 0:
@@ -210,12 +228,10 @@ def cluster_concatenate(policy, placer, log_dir, vc_dict):
 			continue
 		cluster_seq[add_list] = cluster_seq[add_list] + vc_seq[add_list]
 		cluster_seq.dropna(inplace=True)
-		tmp = cluster_seq['fragmentation_ration']
 		cluster_seq = cluster_seq.astype(int)
-		cluster_seq['fragmentation_ration'] = tmp
-		cluster_seq['gpu_utilization'] = ((cluster_seq['total_gpu_num'] - cluster_seq['idle_gpu_num']) /
-										  cluster_seq['total_gpu_num']).round(3)
-	cluster_seq['fragmentation_ration'] /= len(vcs)
+
+	cluster_seq['fragmentation_ratio'] = (cluster_seq['frag_gpu_num'] / cluster_seq['total_gpu_num']).round(3)
+	cluster_seq['gpu_utilization'] = ((cluster_seq['total_gpu_num'] - cluster_seq['idle_gpu_num'])/cluster_seq['total_gpu_num']).round(3)
 	cluster_seq.to_csv(f'{log_dir}/all/{prefix}_all_seq.csv', index=False)
 
 
@@ -235,6 +251,7 @@ def cluster_analysis(scheduler, placer, log_dir, vc_dict):
 	vcs = list(vc_dict.keys())
 	vcs.append('all')
 
+	
 	jct_avg = pd.DataFrame()
 	que_avg = pd.DataFrame()
 	for prefix in prefix_list:
