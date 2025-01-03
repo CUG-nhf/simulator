@@ -117,19 +117,19 @@ def trace_philly_process(dir, date_range, vc_dict, need_mutation=False, mutation
 	start = '2017-10-01 00:00:00'
 	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], converters={'vc': str},
 				  usecols=['user', 'vc', 'jobname', 'gpu_num', 'state', 'submit_time', 'duration'])
-
+	
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
 	# only 3 jobs are deleted
 	df = df[~df['gpu_num'].isin([6, 7])]
-
+	
 	# Modify gpu num 
 	if need_mutation:
 		df, vc_dict = modify_gpu_num(df, vc_dict, mutation_probability)
 	
 	# VC filter
 	df = df[df['vc'].isin(vc_dict.keys())]
-
+	
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
 	df['submit_time'] = df['submit_time'].apply(
 		lambda x: int(datetime.datetime.timestamp(pd.Timestamp(x))))

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 months=(
-	'Sept'
-	'July'
-	'June'
-	# 'all'
+	# 'Sept'
+	# 'July'
+	# 'June'
+	'all'
 )
 
 experiments=(
@@ -18,9 +18,11 @@ experiments=(
 
 declare -a configs=(
 	"defragS dynamic"
-	# "gandiva fifo"
-    # "fifo FGD"
-	# "fifo consolidate"
+	"defragS sdf"
+	"defragS fifo"
+	"gandiva fifo"
+    "fifo FGD"
+	"fifo consolidate"
 )
 
 for month in "${months[@]}"; do
@@ -31,7 +33,7 @@ for month in "${months[@]}"; do
 			experiment_name="${experiment}_${month}"
 		fi
 
-		log="/data/nihaifeng/log/${experiment_name}"
+		log="./log/test/${experiment_name}"  # 为分析公平性重跑实验
 		mkdir -p "$log"
 
 		output_dir="${log}/nohup"
@@ -43,7 +45,7 @@ for month in "${months[@]}"; do
 
 			nohup python simulator.py \
 				-e="$experiment_name" \
-				-t="/data/nihaifeng/code/HeliosArtifact/simulator/data/${experiment}" \
+				-t="./data/${experiment}" \
 				-l="${log}" \
 				-s="${scheduler}" \
 				-p="${placer}" \

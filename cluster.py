@@ -136,7 +136,8 @@ class VC:
 			source_node = None
 			node_score = 0
 			for node in frag_node_list:
-				if source_node == None and node.calculate_node_score() > 0:
+				# if source_node == None and node.calculate_node_score() > 0:
+				if source_node == None:
 					source_node = node
 					node_score = node.calculate_node_score()
 				elif node.calculate_node_score() > node_score:

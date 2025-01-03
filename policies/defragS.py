@@ -8,7 +8,7 @@ class DeFragScheduler(Policy):
 			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'defragS'
 		self.sqf_min = 0
-		self.sqf_max = 0
+		self.sqf_max = 0.1
 
 		if self._placement == 'sdf':
 			self.calculateFitnessScore = self.calculateFitnessScore_sdf
@@ -49,7 +49,7 @@ class DeFragScheduler(Policy):
 				elif job['submit_time'] > self.time:
 					break
 
-			# Pend Job
+			# Pen d Job
 			if self._placement in ['fifo', 'sjf', 'dynamic']:
 				need_defrag =  self.pendJob2()
 			elif self._placement in ['sdf']:
@@ -73,11 +73,12 @@ class DeFragScheduler(Policy):
 	
 	def calScore(self, job):
 		window_size = 5
+		if self.time - job['submit_time'] > job['duration']:
+			return sys.float_info.min
 		if len(self.gpu_utilization) < window_size or sum(self.gpu_utilization[-window_size:])/window_size < 0.8:
 			return job['submit_time']
 		else:
 			return job['gpu_num']
-
 	def pendJob2(self):
 		flag = False
 		que_ls = self.que_list.copy()  # Avoid list.remove() issue
@@ -128,6 +129,7 @@ class DeFragScheduler(Policy):
 			if select_flag:
 				if min_job == None or score < min_score:
 					min_job, min_score, target_node = job, score, alloc_nodes
+		print(min_score)
 		return min_job, target_node
 	
 	def jobPlacer(self, job):
@@ -198,11 +200,11 @@ class DeFragScheduler(Policy):
 				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
 		
 	def calculateFitnessScore_sdf(self, node, job, node_free_gpu, job_req_gpu):
-		alpha, beta, gamma = 0.1, 0.9, 1
-		return	alpha * (node_free_gpu-job_req_gpu)/job_req_gpu \
+		alpha, beta, gamma, delta = 0.1, 0.8, 0.1, 1
+		return	alpha * (node_free_gpu-job_req_gpu)/node.num_gpus \
 				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
 				+ gamma * (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min) \
-				- (self.time - job['submit_time'] + job['duration'])/job['duration']
+				- delta * (self.time - job['submit_time'])/job['duration']
 
 	def defragmentation(self):
 		migrationMap = self._vc.defragmentation()
