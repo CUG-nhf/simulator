@@ -10,7 +10,7 @@ class DeFragScheduler(Policy):
 		self.sqf_min = 0
 		self.sqf_max = 0.1
 
-		if self._placement == 'sdf':
+		if self._placement.split('_')[0] == 'sdf':
 			self.calculateFitnessScore = self.calculateFitnessScore_sdf
 			for job in self.trace.job_list:
 				sqf = job['remain']/job['gpu_num']
@@ -50,9 +50,9 @@ class DeFragScheduler(Policy):
 					break
 
 			# Pen d Job
-			if self._placement in ['fifo', 'sjf', 'dynamic']:
+			if self._placement.split('_')[0] in ['fifo', 'sjf', 'dynamic']:
 				need_defrag =  self.pendJob2()
-			elif self._placement in ['sdf']:
+			elif self._placement.split('_')[0] in ['sdf']:
 				need_defrag = self.pendJob1()
 			
 			if need_defrag:
@@ -74,7 +74,7 @@ class DeFragScheduler(Policy):
 	def calScore(self, job):
 		window_size = 5
 		if self.time - job['submit_time'] > job['duration']:
-			return sys.float_info.min
+			return - (self.time - job['submit_time'] + job['duration'])/job['duration']
 		if len(self.gpu_utilization) < window_size or sum(self.gpu_utilization[-window_size:])/window_size < 0.8:
 			return job['submit_time']
 		else:
@@ -82,11 +82,11 @@ class DeFragScheduler(Policy):
 	def pendJob2(self):
 		flag = False
 		que_ls = self.que_list.copy()  # Avoid list.remove() issue
-		if self._placement == 'fifo':
+		if self._placement.split('_')[0] == 'fifo':
 			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
-		elif self._placement == 'sjf':
+		elif self._placement.split('_')[0] == 'sjf':
 			que_ls.sort(key=lambda x: x.__getitem__('duration'))
-		elif self._placement == 'dynamic':
+		elif self._placement.split('_')[0] == 'dynamic':
 			que_ls.sort(key=lambda x: self.calScore(x))
 		for job in que_ls:
 			if self.jobPlacer(job):

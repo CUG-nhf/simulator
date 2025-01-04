@@ -17,12 +17,12 @@ experiments=(
 )
 
 declare -a configs=(
-	"defragS dynamic"
-	"defragS sdf"
-	"defragS fifo"
-	"gandiva fifo"
-    "fifo FGD"
-	"fifo consolidate"
+	"defragS dynamic_new"
+	# "defragS sdf"
+	# "defragS fifo"
+	# "gandiva fifo"
+    # "fifo FGD"
+	# "fifo consolidate"
 )
 
 for month in "${months[@]}"; do
