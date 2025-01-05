@@ -75,12 +75,15 @@ def trace_process(dir, date_range, vc_dict):
 	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['job_id', 'user', 'vc', 'gpu_num',
 																				   'cpu_num', 'state', 'submit_time', 'duration'])
 	df.rename(columns={'job_id':'jobname'}, inplace=True)
-
-	# VC filter
-	df = df[df['vc'].isin(vc_dict.keys())]
+	
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
-
+	# VC filter
+	df = df[df['vc'].isin(vc_dict.keys())]
+	for k in list(vc_dict.keys()):
+		if k not in df.vc.unique():
+			del vc_dict[k]
+	
 	# Drop jobs with error GPUs
 	df = df.loc[(df['gpu_num'] % 8).isin([0, 1, 2, 4])]  # Drop 0.3% jobs for Sept, 0.2% for July and Zero for June
 	df = df.loc[df['gpu_num'] <= df['vc'].map(vc_dict) * 8]
@@ -122,6 +125,7 @@ def trace_philly_process(dir, date_range, vc_dict, need_mutation=False, mutation
 	df = df[df['gpu_num'] > 0]
 	# only 3 jobs are deleted
 	df = df[~df['gpu_num'].isin([6, 7])]
+	df = df.loc[df['gpu_num'] <= df['vc'].map(vc_dict) * 8]
 	
 	# Modify gpu num 
 	if need_mutation:

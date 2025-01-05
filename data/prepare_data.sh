@@ -12,9 +12,9 @@ clusters=('Venus' 'Earth' 'Saturn' 'Uranus')
 for cluster in ${clusters[@]}; do
     echo "Parsing ${cluster}"
 
-    python log_process.py -c=${cluster}
+    # python log_process.py -c=${cluster}
     
-    python vc_dict_generator.py -c=${cluster} -d='Sept'
+    python vc_dict_generator.py -c=${cluster} -d='July'
 done
 
 echo 'Done'

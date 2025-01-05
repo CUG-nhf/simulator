@@ -1,10 +1,8 @@
 #!/bin/bash
 
 months=(
-	# 'Sept'
+	'Sept'
 	# 'July'
-	# 'June'
-	'all'
 )
 
 experiments=(
@@ -17,12 +15,10 @@ experiments=(
 )
 
 declare -a configs=(
-	"defragS dynamic_new"
-	# "defragS sdf"
-	# "defragS fifo"
-	# "gandiva fifo"
-    # "fifo FGD"
-	# "fifo consolidate"
+	"defragS dynamic"
+	"gandiva fifo"
+    "fifo FGD"
+	"fifo consolidate"
 )
 
 for month in "${months[@]}"; do
@@ -33,7 +29,7 @@ for month in "${months[@]}"; do
 			experiment_name="${experiment}_${month}"
 		fi
 
-		log="./log/test/${experiment_name}"  # 为分析公平性重跑实验
+		log="./log/${experiment_name}"
 		mkdir -p "$log"
 
 		output_dir="${log}/nohup"

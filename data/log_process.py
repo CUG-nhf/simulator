@@ -15,7 +15,7 @@ def main(args):
         Path(f'./{cluster}').mkdir()
 
     if cluster == 'Philly':
-        logfile = Path(args.data + f'/{cluster}/philly_trace.csv')
+        logfile = Path(args.data + f'/{cluster}/philly_trace.csv')  # 2017-10-01 to 2017-12-31, Droped rows with missing values
     else:
         logfile = Path(args.data + f'/{cluster}/cluster_log.csv')
 
@@ -89,9 +89,9 @@ def main(args):
 
     elif cluster == 'Philly':
         df = df[df['vc'] != '795a4c']  # job nums: 3
-        df = df[df['vc'] != '51b7ef']  # job nums: 64
+        df = df[df['vc'] != '51b7ef']  # job nums: 93
         df = df[df['vc'] != '925e2b']  # job nums: 10
-        df = df[df['vc'] != '23dbec']  # Unknow
+        df = df[df['vc'] != '23dbec']  # job nums: 11 and NO jobs in the period of October 2017 to December 2017
 
         df.reset_index(drop=True, inplace=True)
         df.to_csv(f'./{cluster}/cluster_log.csv', index=False)

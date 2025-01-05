@@ -1,4 +1,5 @@
 from .policy import Policy
+from .placer.consolidate import ConsolidatePlacement
 import sys
 
 
@@ -7,10 +8,17 @@ class DeFragScheduler(Policy):
 		super(DeFragScheduler, self).__init__(
 			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'defragS'
+		splits = self._placement.split('_')
+		self._jobSelector = self._placement.split('_')[0]
+		if len(splits) > 1:
+			self._jobPlacer = self._placement.split('_')[1]
+		else:
+			self._jobPlacer = None
+
 		self.sqf_min = 0
 		self.sqf_max = 0.1
 
-		if self._placement.split('_')[0] == 'sdf':
+		if self._jobSelector == 'sdf':
 			self.calculateFitnessScore = self.calculateFitnessScore_sdf
 			for job in self.trace.job_list:
 				sqf = job['remain']/job['gpu_num']
@@ -50,9 +58,9 @@ class DeFragScheduler(Policy):
 					break
 
 			# Pen d Job
-			if self._placement.split('_')[0] in ['fifo', 'sjf', 'dynamic']:
+			if self._jobSelector in ['fifo', 'sjf', 'dynamic']:
 				need_defrag =  self.pendJob2()
-			elif self._placement.split('_')[0] in ['sdf']:
+			elif self._jobSelector in ['sdf']:
 				need_defrag = self.pendJob1()
 			
 			if need_defrag:
@@ -82,14 +90,19 @@ class DeFragScheduler(Policy):
 	def pendJob2(self):
 		flag = False
 		que_ls = self.que_list.copy()  # Avoid list.remove() issue
-		if self._placement.split('_')[0] == 'fifo':
+		if self._jobSelector == 'fifo':
 			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
-		elif self._placement.split('_')[0] == 'sjf':
+		elif self._jobSelector == 'sjf':
 			que_ls.sort(key=lambda x: x.__getitem__('duration'))
-		elif self._placement.split('_')[0] == 'dynamic':
+		elif self._jobSelector == 'dynamic':
 			que_ls.sort(key=lambda x: self.calScore(x))
+		
+		if self._jobPlacer == 'consolidate':
+			jobPlacer = ConsolidatePlacement(self._vc).place
+		else:
+			jobPlacer = self.jobPlacer
 		for job in que_ls:
-			if self.jobPlacer(job):
+			if jobPlacer(job):
 				job['start_time'] = self.time
 				job['end_time'] = job['start_time'] + job['duration']
 				job['queue'] = self.time - job['submit_time']

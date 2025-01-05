@@ -29,12 +29,19 @@ def main(args):
 	elif 'ali20' in args.experiment_name:
 		trace_df, start_ts = utils.trace_ali20_process(args.trace_dir)
 	else:
+		""" TODO: process vc_dict for other months
+		It is best to use only the data from September, 
+		because the number of GPUs varies from month to month, 
+		and using data from other months requires reprocessing the number of GPUs.
+		"""
 		if 'Sept' in args.experiment_name:
 			trace_range = ('2020-09-01 00:00:00', '2020-09-26 23:59:00')
 		elif 'June' in args.experiment_name:
 			trace_range = ('2020-06-01 00:00:00', '2020-06-30 23:59:00')
 		elif 'July' in args.experiment_name:
+			# Earth, Saturn, Uranus的GPU数量在July是静态的
 			trace_range = ('2020-07-01 00:00:00', '2020-07-31 23:59:00')
+			vc_dict = pd.read_pickle(args.trace_dir+'/vc_July_dict_homo.pkl')
 		elif 'all' in args.experiment_name:
 			trace_range = ('2020-04-01 00:00:00', '2020-09-26 23:59:00')
 		else:
