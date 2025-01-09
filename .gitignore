@@ -8,5 +8,6 @@ data/Venus
 data/ali20
 log
 zTest.ipynb
+.vscode/
 
 **/__pycache__

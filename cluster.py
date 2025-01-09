@@ -93,7 +93,6 @@ class VC:
 		return res
 	
 	'''DeFragmentation'''
-
 	def migrationJob(self, migrationMap):
 		for job, source_node, target_node, job_req_gpu in migrationMap:
 			# 源节点释放资源
@@ -114,6 +113,8 @@ class VC:
 					need_new_item = False
 			if need_new_item:
 				job['nodes'].append({target_node.node_name: job_req_gpu})
+			
+			job['ckpt_times'] += 1
 				
 	def frag_node_list(self):
 		# 判断什么样的节点才是碎片节点
@@ -170,7 +171,7 @@ class VC:
 					if  node_free_gpus < job_req_gpu or node == source_node:
 						continue
 					# 对可用节点进行打分排序，选择分数最小的节点：剩余时间接近，空闲卡数量少
-					tmp_node_score = 0.1*(node_free_gpus-job_req_gpu)/job_req_gpu + 0.9*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
+					tmp_node_score = 0.1*(node_free_gpus-job_req_gpu)/node.num_gpus + 0.9*(abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
 					if target_node == None:
 						target_node = node
 						node_score = tmp_node_score

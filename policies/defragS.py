@@ -8,6 +8,7 @@ class DeFragScheduler(Policy):
 		super(DeFragScheduler, self).__init__(
 			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'defragS'
+
 		splits = self._placement.split('_')
 		self._jobSelector = self._placement.split('_')[0]
 		if len(splits) > 1:
@@ -78,15 +79,7 @@ class DeFragScheduler(Policy):
 			self.process_running_job()
 
 		self.log_recorder(self._name)
-	
-	def calScore(self, job):
-		window_size = 5
-		if self.time - job['submit_time'] > job['duration']:
-			return - (self.time - job['submit_time'] + job['duration'])/job['duration']
-		if len(self.gpu_utilization) < window_size or sum(self.gpu_utilization[-window_size:])/window_size < 0.8:
-			return job['submit_time']
-		else:
-			return job['gpu_num']
+		
 	def pendJob2(self):
 		flag = False
 		que_ls = self.que_list.copy()  # Avoid list.remove() issue
@@ -137,12 +130,19 @@ class DeFragScheduler(Policy):
 		min_job = None
 		target_node = None
 
+		que_ls = []
 		for job in self.que_list:
+			if self.time - job['submit_time'] > job['duration']:
+				que_ls.append(job)
+		if len(que_ls) == 0:
+			que_ls = self.que_list
+
+		for job in que_ls:
 			select_flag, alloc_nodes, score = self.nodesSelect(job)
 			if select_flag:
 				if min_job == None or score < min_score:
 					min_job, min_score, target_node = job, score, alloc_nodes
-		print(min_score)
+				print(min_score)
 		return min_job, target_node
 	
 	def jobPlacer(self, job):
@@ -208,18 +208,19 @@ class DeFragScheduler(Policy):
 		return True, alloc_nodes, node_score
 	
 	def calculateFitnessScore_other(self, node, job, node_free_gpu, job_req_gpu):
-		alpha, beta = 0.1, 0.9
-		return	alpha * (node_free_gpu-job_req_gpu)/job_req_gpu \
+		alpha, beta = 0.5, 0.5
+		return	alpha * (node_free_gpu-job_req_gpu)/node.num_gpus \
 				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
 		
 	def calculateFitnessScore_sdf(self, node, job, node_free_gpu, job_req_gpu):
-		alpha, beta, gamma, delta = 0.1, 0.8, 0.1, 1
+		alpha, beta, gamma = 0.1, 0.9, 1
 		return	alpha * (node_free_gpu-job_req_gpu)/node.num_gpus \
 				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
-				+ gamma * (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min) \
-				- delta * (self.time - job['submit_time'])/job['duration']
+				# + gamma * (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min) \
 
 	def defragmentation(self):
 		migrationMap = self._vc.defragmentation()
 		for job, source_node, target_node, job_req_gpu in migrationMap:
+			job['end_time'] += self.ckpt_overhead(job)
+			job['remain'] += self.ckpt_overhead(job)
 			print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')

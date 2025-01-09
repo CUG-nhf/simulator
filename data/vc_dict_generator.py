@@ -21,21 +21,6 @@ def main(args):
 	else:
 		file = Path(f'/data/nihaifeng/HeliosData/data/{cluster}/cluster_gpu_number.csv')
 		df = pd.read_csv(file, parse_dates=['date'])
-	
-	if date == 'July':
-		vcs = df.columns.values[1:-1]
-		gpus_num = df[df['date'] == datetime.datetime(
-			2020, 7, 1)].values[0][1:-1]
-		nodes_num = gpus_num // 8
-
-		assert len(nodes_num) == len(vcs)
-		dic = dict(zip(vcs, nodes_num))
-
-		filtered_data = {key: value for key, value in dic.items() if value != 0}
-
-		with open(f'./{cluster}/vc_{date}_dict_homo.pkl', 'wb') as f:
-			pickle.dump(filtered_data, f, pickle.HIGHEST_PROTOCOL)
-			
 
 	if cluster == 'Saturn' and date == 'Sept':
 		vcs = df.columns.values[1:-1]

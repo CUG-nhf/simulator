@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from job import Job, Trace
 from policies import ShortestJobFirst, FirstInFirstOut, ShortestRemainingTimeFirst, QuasiShortestServiceFirst
-from policies import Gandiva, DeFragScheduler
+from policies import Gandiva, DeFragScheduler, Dynamic
 sys.path.append('..')
 
 
@@ -30,13 +30,16 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 	elif policy == 'defragS':
 		scheduler = DeFragScheduler(
 			trace, vc, placement, log_dir, logger, start_ts)
+	elif policy == 'dynamic':
+		scheduler = Dynamic(
+			trace, vc, placement, log_dir, logger, start_ts)
 	scheduler.simulate()
 	logger.info(f'Finish {vc.vc_name}')
 	return True
 
 
 def get_available_schedulers():
-	return ['fifo', 'sjf', 'gandiva', 'defragS', 'srtf', 'qssf']
+	return ['fifo', 'sjf', 'gandiva', 'defragS', 'srtf', 'qssf', 'dynamic']
 
 
 def get_available_placers():
@@ -125,13 +128,11 @@ def trace_philly_process(dir, date_range, vc_dict, need_mutation=False, mutation
 	df = df[df['gpu_num'] > 0]
 	# only 3 jobs are deleted
 	df = df[~df['gpu_num'].isin([6, 7])]
-	df = df.loc[df['gpu_num'] <= df['vc'].map(vc_dict) * 8]
 	
 	# Modify gpu num 
 	if need_mutation:
 		df, vc_dict = modify_gpu_num(df, vc_dict, mutation_probability)
-	
-	# VC filter
+
 	df = df[df['vc'].isin(vc_dict.keys())]
 	
 	df = df[df['submit_time'] >= pd.Timestamp(start)]

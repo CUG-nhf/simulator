@@ -35,10 +35,12 @@ class Gandiva(Policy):
 					break
 			# Pend Job
 			# NOTE: Sort by submit time -- FIFO
-			if self._placement == "sjf":
-				self.que_list.sort(key=lambda x: x.__getitem__('duration'))
-			elif self._placement == "fifo":
+			if "dynamic" in self._placement:
+				self.que_list.sort(key=lambda x: self.calScore(x))
+			elif "fifo" in self._placement:
 				self.que_list.sort(key=lambda x: x.__getitem__('submit_time'))
+			elif "sjf" in self._placement:
+				self.que_list.sort(key=lambda x: x.__getitem__('duration'))
 				
 			que_ls = self.que_list.copy()  # Avoid list.remove() issue
 			for job in que_ls:
@@ -116,6 +118,8 @@ class Gandiva(Policy):
 							break
 
 			for j, sn, tn, g in migrationMap:
+				j['end_time'] += self.ckpt_overhead(j)
+				j['remain'] += self.ckpt_overhead(j)
 				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {j['jobname']} FROM {sn.node_name} MIGRATE TO {tn.node_name} WITH {g} GPUs''')
 				# migrate jobs with finding target node
 			self._vc.migrationJob(migrationMap)

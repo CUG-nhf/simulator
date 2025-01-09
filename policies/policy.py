@@ -37,6 +37,15 @@ class Policy:
 		self.frag_gpu_num = []
 		self.gpu_utilization = []
 
+	def calScore(self, job):
+		window_size = 5
+		if self.time - job['submit_time'] > job['duration']:
+			return - (self.time - job['submit_time'] + job['duration'])/job['duration']
+		if len(self.gpu_utilization) < window_size or sum(self.gpu_utilization[-window_size:])/window_size < 0.8:
+			return job['submit_time']
+		else:
+			return job['gpu_num']
+		
 	def job_placer(self, job):
 		if self._placement == 'consolidate':
 			return ConsolidatePlacement(self._vc).place(job)
@@ -73,6 +82,8 @@ class Policy:
 			raise NotImplementedError
 
 		df['jct'] = df['end_time'] - df['submit_time']
+		# TODO : if consider ckpt overhead, the job['slowdown'] should be changed
+		df['slowdown'] = round((df['queue'] + df['duration']) / df['duration'], 2)
 		avg_jct = round(df['jct'].mean(), 2)
 		avg_que = round(df['queue'].mean(), 2)
 		self.logger.info(
