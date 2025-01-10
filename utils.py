@@ -6,8 +6,7 @@ import time
 import numpy as np
 import pandas as pd
 from job import Job, Trace
-from policies import ShortestJobFirst, FirstInFirstOut, ShortestRemainingTimeFirst, QuasiShortestServiceFirst
-from policies import Gandiva, DeFragScheduler, Dynamic
+from policies import ShortestJobFirst, FirstInFirstOut, Gandiva, DeFragScheduler, Dynamic
 sys.path.append('..')
 
 
@@ -18,12 +17,6 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 	elif policy == 'fifo':
 		scheduler = FirstInFirstOut(
 			trace, vc, placement, log_dir, logger, start_ts)
-	elif policy == 'srtf':
-		scheduler = ShortestRemainingTimeFirst(
-			trace, vc, placement, log_dir, logger, start_ts)
-	elif policy == 'qssf':
-		scheduler = QuasiShortestServiceFirst(
-			trace, vc, placement, log_dir, logger, start_ts, args[0])
 	elif policy == 'gandiva':
 		scheduler = Gandiva(
 			trace, vc, placement, log_dir, logger, start_ts)
@@ -39,11 +32,10 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 
 
 def get_available_schedulers():
-	return ['fifo', 'sjf', 'gandiva', 'defragS', 'srtf', 'qssf', 'dynamic']
-
+	return ['fifo', 'sjf', 'gandiva', 'defragS', 'dynamic', 'dfs_NoDuration']
 
 def get_available_placers():
-	return ['random', 'consolidate', 'FGD', 'consolidateFirst']
+	return ['random', 'consolidate', 'FGD']
 
 
 def modify_gpu_num(df, vc_dict, mutation_probability=0.1, random_state=45):
@@ -75,7 +67,7 @@ def modify_gpu_num(df, vc_dict, mutation_probability=0.1, random_state=45):
 
 def trace_process(dir, date_range, vc_dict):
 	start = '2020-04-01 00:00:00'
-	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['job_id', 'user', 'vc', 'gpu_num',
+	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['job_id', 'user', 'vc', 'gpu_num', 
 																				   'cpu_num', 'state', 'submit_time', 'duration'])
 	df.rename(columns={'job_id':'jobname'}, inplace=True)
 	
@@ -108,6 +100,7 @@ def trace_process(dir, date_range, vc_dict):
 	end = (pd.Timestamp(date_range[1])-pd.Timestamp(start)).total_seconds()
 	df = df[(df['submit_time'] >= begin) & (df['submit_time'] <= end)]
 	
+	# Normalize to Zero
 	df.sort_values(by='submit_time', inplace=True)
 	df.reset_index(inplace=True, drop=True)
 
@@ -115,7 +108,7 @@ def trace_process(dir, date_range, vc_dict):
 	for vc in list(vc_dict.keys()).copy():
 		if (df[df['vc'] == vc].shape[0] == 0):
 			del vc_dict[vc]
-	
+			
 	return df, begin
 
 

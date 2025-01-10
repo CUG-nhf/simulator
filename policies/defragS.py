@@ -1,6 +1,7 @@
 from .policy import Policy
 from .placer.consolidate import ConsolidatePlacement
 import sys
+import random
 
 
 class DeFragScheduler(Policy):
@@ -15,7 +16,14 @@ class DeFragScheduler(Policy):
 			self._jobPlacer = self._placement.split('_')[1]
 		else:
 			self._jobPlacer = None
-
+		
+		# random.seed(45)
+		# error = 0.2
+		# for job in self.trace.job_list:
+		# 	job['true_duration'] = job['duration']
+		# 	job['duration'] = (random.uniform(-error, 2*error) + 1) * job['duration']
+		# 	job['remain'] = job['duration']
+		
 		self.sqf_min = 0
 		self.sqf_max = 0.1
 
@@ -27,7 +35,6 @@ class DeFragScheduler(Policy):
 				self.sqf_min = min(self.sqf_min, sqf)
 		else:
 			self.calculateFitnessScore = self.calculateFitnessScore_other
-
 	def simulate(self):
 		prev_index = 0
 
@@ -58,7 +65,7 @@ class DeFragScheduler(Policy):
 				elif job['submit_time'] > self.time:
 					break
 
-			# Pen d Job
+			# Pend Job
 			if self._jobSelector in ['fifo', 'sjf', 'dynamic']:
 				need_defrag =  self.pendJob2()
 			elif self._jobSelector in ['sdf']:
@@ -97,7 +104,7 @@ class DeFragScheduler(Policy):
 		for job in que_ls:
 			if jobPlacer(job):
 				job['start_time'] = self.time
-				job['end_time'] = job['start_time'] + job['duration']
+				job['end_time'] = job['start_time'] + job['duration']  # + job['true_duration']
 				job['queue'] = self.time - job['submit_time']
 				job['status'] = 'run'
 				self.que_list.remove(job)
@@ -210,7 +217,7 @@ class DeFragScheduler(Policy):
 	def calculateFitnessScore_other(self, node, job, node_free_gpu, job_req_gpu):
 		alpha, beta = 0.5, 0.5
 		return	alpha * (node_free_gpu-job_req_gpu)/node.num_gpus \
-				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime())
+				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/(max(job['remain'], node.getLargestReaminTime())) #  + 0.1
 		
 	def calculateFitnessScore_sdf(self, node, job, node_free_gpu, job_req_gpu):
 		alpha, beta, gamma = 0.1, 0.9, 1
@@ -221,6 +228,6 @@ class DeFragScheduler(Policy):
 	def defragmentation(self):
 		migrationMap = self._vc.defragmentation()
 		for job, source_node, target_node, job_req_gpu in migrationMap:
-			job['end_time'] += self.ckpt_overhead(job)
-			job['remain'] += self.ckpt_overhead(job)
+			# job['end_time'] += self.ckpt_overhead(job)
+			# job['remain'] += self.ckpt_overhead(job)
 			print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')

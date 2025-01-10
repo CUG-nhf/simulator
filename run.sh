@@ -9,21 +9,22 @@ months=(
 
 experiments=(
 	'Philly' 
-	# 'ali20'
+	'ali20'
+	'Venus'
 	# 'Saturn' 
 	# 'Earth' 
-	# 'Venus'
 	# 'Uranus'
 )
 
 declare -a configs=(
-	"defragS dynamic_ckpt"
-	"gandiva dynamic_ckpt"
+	# "defragS dynamic_noDefrag"
+	"defragS dynamic"
+	# "gandiva dynamic"
 	# "dynamic FGD"
 	# "dynamic consolidate"
 
-	"defragS fifo_ckpt"
-	"gandiva fifo_ckpt"
+	# "defragS fifo"
+	# "gandiva fifo"
 	# "fifo FGD"
 	# "fifo consolidate"
 
@@ -42,7 +43,7 @@ for month in "${months[@]}"; do
 			experiment_name="${experiment}_${month}"
 		fi
 
-		log="./log/test/${experiment_name}"
+		log="./log/noDuration_2/${experiment_name}"
 		mkdir -p "$log"
 
 		output_dir="${log}/nohup"
@@ -60,6 +61,7 @@ for month in "${months[@]}"; do
 				-l="${log}" \
 				-s="${scheduler}" \
 				-p="${placer}" \
+				--mutation \
 				> "${output_dir}/${experiment_name}_${scheduler}_${placer}.out" &
 		done
 	done
