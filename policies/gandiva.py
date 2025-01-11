@@ -116,13 +116,10 @@ class Gandiva(Policy):
 								node_name, req_gpu = next(iter(dict.items()))
 								migrationMap.append((job, self._vc.get_vc_node(node_name), tmp_node, req_gpu))
 							break
-
-			for j, sn, tn, g in migrationMap:
+			self._vc.migrationJob(migrationMap)
+			# for j, sn, tn, g in migrationMap:
 				# j['end_time'] += self.ckpt_overhead(j)
 				# j['remain'] += self.ckpt_overhead(j)
-				print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {j['jobname']} FROM {sn.node_name} MIGRATE TO {tn.node_name} WITH {g} GPUs''')
-				# migrate jobs with finding target node
-			self._vc.migrationJob(migrationMap)
 
 			
 	def gandiva_placement(self, job):

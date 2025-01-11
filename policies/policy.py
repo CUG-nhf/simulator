@@ -33,7 +33,7 @@ class Policy:
 		self.total_node_num = []
 		self.consolidate_node_num = []
 		self.partial_node_num = []
-		self.free_node_num = []
+		self.free_node_num = []  # Node Number with 8 free GPUs
 		self.frag_gpu_num = []
 		self.gpu_utilization = []
 

@@ -37,11 +37,10 @@ class DeFragScheduler(Policy):
 			self.calculateFitnessScore = self.calculateFitnessScore_other
 	def simulate(self):
 		prev_index = 0
-
 		while self.end_job_num != self.total_job_num:
 
-			need_defrag = False
 			'''1. Check & Release End Jobs'''
+			need_defrag = False
 			run_ls = self.run_list.copy()  # Avoid list.remove() issue
 			for job in run_ls:
 				if self.time == job['end_time']:
@@ -71,9 +70,6 @@ class DeFragScheduler(Policy):
 			elif self._jobSelector in ['sdf']:
 				need_defrag = self.pendJob1()
 			
-			if need_defrag:
-				self.defragmentation()
-
 			'''3. Log & Result Recorder'''
 			if self.time % 10000 == 0:
 				self.runtime_log()
@@ -88,7 +84,6 @@ class DeFragScheduler(Policy):
 		self.log_recorder(self._name)
 		
 	def pendJob2(self):
-		flag = False
 		que_ls = self.que_list.copy()  # Avoid list.remove() issue
 		if self._jobSelector == 'fifo':
 			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
@@ -109,10 +104,8 @@ class DeFragScheduler(Policy):
 				job['status'] = 'run'
 				self.que_list.remove(job)
 				self.run_list.append(job)
-				flag = True
 			else:
 				break
-		return	flag
 		
 	def pendJob1(self):
 		flag = False
@@ -227,7 +220,6 @@ class DeFragScheduler(Policy):
 
 	def defragmentation(self):
 		migrationMap = self._vc.defragmentation()
-		for job, source_node, target_node, job_req_gpu in migrationMap:
+		# for job, source_node, target_node, job_req_gpu in migrationMap:
 			# job['end_time'] += self.ckpt_overhead(job)
 			# job['remain'] += self.ckpt_overhead(job)
-			print(f'''TIME:{self.time},VC:{self._vc.vc_name}-- {job['jobname']} FROM {source_node.node_name} MIGRATE TO {target_node.node_name} WITH {job_req_gpu} GPUs''')

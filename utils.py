@@ -56,12 +56,11 @@ def modify_gpu_num(df, vc_dict, mutation_probability=0.1, random_state=45):
 	103959 8
 	0e4a51 32
 	'''
-
 	# Randomly increase the gpu_num for some 1 GPU Jobs 
 	gpu_num_1_rows = df[df['gpu_num'] == 1]
 	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=random_state).index
 	np.random.seed(random_state)
-	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 16, 32, 64], size=len(change_indices))
+	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 12, 16, 20, 24, 28, 32], size=len(change_indices)) # [8, 16, 32, 64]
 	return df, vc_dict
 
 
