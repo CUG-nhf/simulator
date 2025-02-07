@@ -4,6 +4,9 @@ class Job(dict):
 		self.update(series.to_dict())
 		# Priority Define by Estimator, Random Means No History Data Found
 		self.update({'nodes': [], 'priority': -1, 'random': 0})
+	
+	def __lt__(self, other):
+		return self.__getitem__('gpu_num') < other['gpu_num']
 
 	def set_ckpt_time(self, time):
 		self.last_ckpt_time = time
@@ -11,12 +14,18 @@ class Job(dict):
 	def get_ckpt_time(self):
 		return self.last_ckpt_time
 	
-	def get_req_gpu(self, node):
-		for dict in self.__getitem__('nodes'):
-			node_name, req_gpu = next(iter(dict.items()))
-			if node_name == node.node_name:
-				return req_gpu
-
+	def modify_nodes(self, origin_node_name, new_node_name, job_req_gpu):
+		need_new_item = True
+		for dict in self.__getitem__('nodes')[:]:  #遍历副本，防止remove后改变遍历顺序
+			node_name, _ = next(iter(dict.items()))
+			if node_name == origin_node_name:
+				self.__getitem__('nodes').remove(dict)
+			elif node_name == new_node_name:
+				dict[node_name] += job_req_gpu  #  ls[:]是ls的浅拷贝，修改dict可直接修改到原列表
+				need_new_item = False
+		if need_new_item:
+			self.__getitem__('nodes').append({new_node_name: job_req_gpu})
+		
 
 class Trace:
 	def __init__(self):

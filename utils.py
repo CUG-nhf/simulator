@@ -6,7 +6,7 @@ import time
 import numpy as np
 import pandas as pd
 from job import Job, Trace
-from policies import ShortestJobFirst, FirstInFirstOut, Gandiva, DeFragScheduler, Dynamic
+from policies import ShortestJobFirst, FirstInFirstOut, Gandiva, DeFragScheduler
 sys.path.append('..')
 
 
@@ -23,20 +23,16 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 	elif policy == 'defragS':
 		scheduler = DeFragScheduler(
 			trace, vc, placement, log_dir, logger, start_ts)
-	elif policy == 'dynamic':
-		scheduler = Dynamic(
-			trace, vc, placement, log_dir, logger, start_ts)
 	scheduler.simulate()
 	logger.info(f'Finish {vc.vc_name}')
 	return True
 
 
 def get_available_schedulers():
-	return ['fifo', 'sjf', 'gandiva', 'defragS', 'dynamic', 'dfs_NoDuration']
+	return ['fifo', 'sjf', 'gandiva', 'defragS', 'dynamic']
 
 def get_available_placers():
-	return ['random', 'consolidate', 'FGD']
-
+	return ['random', 'consolidate', 'FGD', "stBestFit"]
 
 def modify_gpu_num(df, vc_dict, mutation_probability=0.1, random_state=45):
 	# 合并两个小集群
@@ -63,12 +59,11 @@ def modify_gpu_num(df, vc_dict, mutation_probability=0.1, random_state=45):
 	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 12, 16, 20, 24, 28, 32], size=len(change_indices)) # [8, 16, 32, 64]
 	return df, vc_dict
 
-
 def trace_process(dir, date_range, vc_dict):
 	start = '2020-04-01 00:00:00'
-	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], usecols=['job_id', 'user', 'vc', 'gpu_num', 
-																				   'cpu_num', 'state', 'submit_time', 'duration'])
+	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time', 'end_time'], usecols=['job_id', 'user', 'vc', 'gpu_num','cpu_num', 'state', 'submit_time', 'duration','end_time'])
 	df.rename(columns={'job_id':'jobname'}, inplace=True)
+	df['real_end_time'] = df['end_time']
 	
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
@@ -79,7 +74,6 @@ def trace_process(dir, date_range, vc_dict):
 			del vc_dict[k]
 	
 	# Drop jobs with error GPUs
-	df = df.loc[(df['gpu_num'] % 8).isin([0, 1, 2, 4])]  # Drop 0.3% jobs for Sept, 0.2% for July and Zero for June
 	df = df.loc[df['gpu_num'] <= df['vc'].map(vc_dict) * 8]
 
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
@@ -111,19 +105,19 @@ def trace_process(dir, date_range, vc_dict):
 	return df, begin
 
 
-def trace_philly_process(dir, date_range, vc_dict, need_mutation=False, mutation_probability=0.1):
+def trace_philly_process(dir, date_range, vc_dict):
 	start = '2017-10-01 00:00:00'
-	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time'], converters={'vc': str},
-				  usecols=['user', 'vc', 'jobname', 'gpu_num', 'state', 'submit_time', 'duration'])
-	
+	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time', 'end_time'], converters={'vc': str},
+				  usecols=['user', 'vc', 'jobname', 'gpu_num', 'state', 'submit_time', 'duration', 'end_time'])
+	df['real_end_time'] = df['end_time']
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
 	# only 3 jobs are deleted
 	df = df[~df['gpu_num'].isin([6, 7])]
 	
 	# Modify gpu num 
-	if need_mutation:
-		df, vc_dict = modify_gpu_num(df, vc_dict, mutation_probability)
+	# if mutation_probability > 0:
+	# 	df, vc_dict = modify_gpu_num(df, vc_dict, mutation_probability)
 
 	df = df[df['vc'].isin(vc_dict.keys())]
 	
@@ -158,6 +152,7 @@ def trace_ali20_process(dir):
 	df.drop(columns=['inst_id', 'user',], inplace=True)
 	df.rename(columns={'job_name':'jobname'}, inplace=True)
 	df.rename(columns={'start_time':'submit_time'}, inplace=True)
+	df['real_end_time'] = df['end_time']
 
 	df['remain'] = df['duration']
 	df[['start_time', 'end_time']] = sys.maxsize

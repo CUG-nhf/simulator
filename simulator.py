@@ -24,7 +24,7 @@ def main(args):
 	if 'Philly' in args.experiment_name:
 		trace_range = ('2017-10-01 00:00:00', '2017-11-30 23:59:00')
 		trace_df, start_ts = utils.trace_philly_process(
-			args.trace_dir, trace_range, vc_dict, args.mutation)
+			args.trace_dir, trace_range, vc_dict)
 	elif 'ali20' in args.experiment_name:
 		trace_df, start_ts = utils.trace_ali20_process(args.trace_dir)
 	else:
@@ -81,9 +81,6 @@ if __name__ == '__main__':
 						choices=utils.get_available_schedulers(), type=str, help='Scheduler Algorithm')
 	parser.add_argument('-p', '--placer', default='consolidate',
 						type=str, help='Placer Algorithm') # choices=utils.get_available_placers(),
-	
-	parser.add_argument('--mutation', action='store_true', default=False,
-						help='mutation workload')
 	
 	parser.add_argument('-j', '--processes', type=int, default=None,
 						help=('Number of processes to use in multiprocessing.Pool'

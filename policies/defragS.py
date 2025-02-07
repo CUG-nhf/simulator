@@ -1,8 +1,7 @@
 from .policy import Policy
-from .placer.consolidate import ConsolidatePlacement
+import queue
 import sys
 import random
-
 
 class DeFragScheduler(Policy):
 	def __init__(self, trace, vc, placement, log_dir, logger, start_ts):
@@ -10,31 +9,13 @@ class DeFragScheduler(Policy):
 			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'defragS'
 
-		splits = self._placement.split('_')
-		self._jobSelector = self._placement.split('_')[0]
-		if len(splits) > 1:
-			self._jobPlacer = self._placement.split('_')[1]
-		else:
-			self._jobPlacer = None
-		
 		# random.seed(45)
-		# error = 0.2
+		# error = 0.45
 		# for job in self.trace.job_list:
 		# 	job['true_duration'] = job['duration']
-		# 	job['duration'] = (random.uniform(-error, 2*error) + 1) * job['duration']
+		# 	job['duration'] = (random.uniform(-error, error) + 1) * job['duration']
 		# 	job['remain'] = job['duration']
-		
-		self.sqf_min = 0
-		self.sqf_max = 0.1
 
-		if self._jobSelector == 'sdf':
-			self.calculateFitnessScore = self.calculateFitnessScore_sdf
-			for job in self.trace.job_list:
-				sqf = job['remain']/job['gpu_num']
-				self.sqf_max = max(self.sqf_max, sqf)
-				self.sqf_min = min(self.sqf_min, sqf)
-		else:
-			self.calculateFitnessScore = self.calculateFitnessScore_other
 	def simulate(self):
 		prev_index = 0
 		while self.end_job_num != self.total_job_num:
@@ -65,11 +46,23 @@ class DeFragScheduler(Policy):
 					break
 
 			# Pend Job
-			if self._jobSelector in ['fifo', 'sjf', 'dynamic']:
-				need_defrag =  self.pendJob2()
-			elif self._jobSelector in ['sdf']:
-				need_defrag = self.pendJob1()
-			
+			que_ls = self.que_list.copy()  # Avoid list.remove() issue
+			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
+			need_defrag = False
+			for job in que_ls:
+				if self._job_placer.place(job):
+					job['start_time'] = self.time
+					job['end_time'] = job['start_time'] + job['duration'] # job['true_duration']
+					job['queue'] = self.time - job['submit_time']
+					job['status'] = 'run'
+					self.que_list.remove(job)
+					self.run_list.append(job)
+					need_defrag = True
+				else:
+					break
+			if need_defrag:
+				self.defragmentation()
+
 			'''3. Log & Result Recorder'''
 			if self.time % 10000 == 0:
 				self.runtime_log()
@@ -82,144 +75,66 @@ class DeFragScheduler(Policy):
 			self.process_running_job()
 
 		self.log_recorder(self._name)
-		
-	def pendJob2(self):
-		que_ls = self.que_list.copy()  # Avoid list.remove() issue
-		if self._jobSelector == 'fifo':
-			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
-		elif self._jobSelector == 'sjf':
-			que_ls.sort(key=lambda x: x.__getitem__('duration'))
-		elif self._jobSelector == 'dynamic':
-			que_ls.sort(key=lambda x: self.calScore(x))
-		
-		if self._jobPlacer == 'consolidate':
-			jobPlacer = ConsolidatePlacement(self._vc).place
-		else:
-			jobPlacer = self.jobPlacer
-		for job in que_ls:
-			if jobPlacer(job):
-				job['start_time'] = self.time
-				job['end_time'] = job['start_time'] + job['duration']  # + job['true_duration']
-				job['queue'] = self.time - job['submit_time']
-				job['status'] = 'run'
-				self.que_list.remove(job)
-				self.run_list.append(job)
-			else:
-				break
-		
-	def pendJob1(self):
-		flag = False
-		job, alloc_nodes = self.jobSelector()
-		while job != None:
-			for (node, req_gpu) in alloc_nodes:
-				node.allocate_gpu(req_gpu)
-				node.add_job(job)
-				job['nodes'].append({node.node_name: req_gpu})
-			job['start_time'] = self.time
-			job['end_time'] = job['start_time'] + job['duration']
-			job['queue'] = self.time - job['submit_time']
-			job['status'] = 'run'
-			self.que_list.remove(job)
-			self.run_list.append(job)
-			job, alloc_nodes = self.jobSelector()
-			flag = True
-		return flag
- 
-	def jobSelector(self):
-		min_score = sys.float_info.max
-		min_job = None
-		target_node = None
-
-		que_ls = []
-		for job in self.que_list:
-			if self.time - job['submit_time'] > job['duration']:
-				que_ls.append(job)
-		if len(que_ls) == 0:
-			que_ls = self.que_list
-
-		for job in que_ls:
-			select_flag, alloc_nodes, score = self.nodesSelect(job)
-			if select_flag:
-				if min_job == None or score < min_score:
-					min_job, min_score, target_node = job, score, alloc_nodes
-				print(min_score)
-		return min_job, target_node
-	
-	def jobPlacer(self, job):
-		vc_free_gpu_num = self._vc.vc_free_gpus()
-		job_gpu_num = job['gpu_num']
-
-		# Total Free GPU Check
-		if vc_free_gpu_num < job_gpu_num:
-			return False
-
-		select_flag, alloc_nodes, _ = self.nodesSelect(job)
-
-		''' Placement '''
-		if select_flag:
-			for (node, req_gpu) in alloc_nodes:
-				node.allocate_gpu(req_gpu)
-				node.add_job(job)
-				job['nodes'].append({node.node_name: req_gpu})
-			return True
-		else:
-			return False
-	
-	def nodesSelect(self, job):
-		job_gpu_num = job['gpu_num']
-		alloc_nodes = []
-		complete_node_num = job_gpu_num // 8
-		partial_node_nmu = job_gpu_num % 8
-
-		nodes = sorted(self._vc.avail_node_list(),key=lambda x: x.free_gpus, reverse=True)
-
-		'''assign completely idle nodes -- Consolidate'''
-		while complete_node_num > 0:
-			if len(nodes) > 0 and nodes[0].free_gpus == 8:
-				alloc_nodes.append((nodes[0], 8))
-				complete_node_num -= 1
-				nodes.pop(0)
-			else:
-				return False, alloc_nodes, sys.float_info.max
-			
-		if partial_node_nmu == 0:
-			return True, alloc_nodes, (job['remain']/job['gpu_num'] - self.sqf_min)/(self.sqf_max - self.sqf_min)
-
-		'''assign partially idle nodes -- DeFragS-consolidate'''
-		# 1) Filter out unavailable nodes
-		nodes = [node for node in nodes if node.free_gpus >= partial_node_nmu]
-		if len(nodes) == 0:
-			return False, alloc_nodes, sys.float_info.max
-		# Assign Job to node
-		target_node = None
-		node_score = sys.float_info.max
-		for node in nodes:
-			node_free_gpus = node.free_gpus
-			# 对可用节点进行打分排序，选择分数最小的节点：剩余时间接近，空闲卡数量少
-			tmp_node_score = self.calculateFitnessScore(node, job, node_free_gpus, partial_node_nmu)
-			if target_node == None:
-				target_node = node
-				node_score = tmp_node_score
-			elif tmp_node_score < node_score:
-				target_node = node
-				node_score = tmp_node_score
-		alloc_nodes.append((target_node, partial_node_nmu))
-
-		return True, alloc_nodes, node_score
-	
-	def calculateFitnessScore_other(self, node, job, node_free_gpu, job_req_gpu):
-		alpha, beta = 0.5, 0.5
-		return	alpha * (node_free_gpu-job_req_gpu)/node.num_gpus \
-				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/(max(job['remain'], node.getLargestReaminTime())) #  + 0.1
-		
-	def calculateFitnessScore_sdf(self, node, job, node_free_gpu, job_req_gpu):
-		alpha, beta, gamma = 0.1, 0.9, 1
-		return	alpha * (node_free_gpu-job_req_gpu)/node.num_gpus \
-				+ beta * (abs(node.getLargestReaminTime()-job['remain']))/max(job['remain'], node.getLargestReaminTime()) \
-				# + gamma * (job['remain']/job['gpu_num'] - self.sqf_min) / (self.sqf_max - self.sqf_min) \
-
 	def defragmentation(self):
-		migrationMap = self._vc.defragmentation()
-		# for job, source_node, target_node, job_req_gpu in migrationMap:
-			# job['end_time'] += self.ckpt_overhead(job)
-			# job['remain'] += self.ckpt_overhead(job)
+			# 碎片整理路径：1.选源主机 2.选作业 3.选目标主机 （打分排序）
+			frag_node_list = self._vc.frag_node_list()
+			
+			MAX_MIGRATION_DEEP = 1
+			while MAX_MIGRATION_DEEP > 0 and len(frag_node_list) > 1:
+				MAX_MIGRATION_DEEP -= 1
+
+				# 1. sorted source nodes
+				frag_node_list = sorted(frag_node_list, key=lambda x: (x.used_gpu() / len(x.running_jobs), len(x.running_jobs)))
+				for source_node in frag_node_list[:]:  # Avoid list.remove() issue
+					if source_node not in frag_node_list:
+						continue
+					
+					# 2.选待迁移作业：优先迁移大作业，防止小作业在两个节点之间来回迁移
+					# migration_jobs = sorted(source_node.running_jobs, key=lambda job: job[1], reverse=True)
+					# migration_jobs = sorted(source_node.running_jobs, key=lambda job: job[1])
+					migration_jobs = queue.PriorityQueue()
+					for job, job_req_gpu in source_node.running_jobs:
+						migration_jobs.put((job_req_gpu, job))
+					# 3.选目标节点 
+					# for job, job_req_gpu in migration_jobs:
+					while not migration_jobs.empty():
+						job_req_gpu, job = migration_jobs.get(migration_jobs)
+
+						tmp = [node for node in frag_node_list if node != source_node]
+						select_flag, target_nodes = self._job_placer.nodeSelect(job, job_req_gpu, tmp)
+						if select_flag:
+							self._vc.migrationJob([(job, source_node, target_nodes[0][0], job_req_gpu)])
+							if target_nodes[0][0].free_gpus == 0:
+								frag_node_list.remove(target_nodes[0][0])
+							if source_node.free_gpus == source_node.num_gpus:
+								frag_node_list.remove(source_node)
+						else:
+							# induced migration
+							# 从后往前frag_node_list， 先看踢一个小作业能凑整不
+							swap_option = None
+							for target_node in reversed(frag_node_list):
+								if swap_option==None and target_node != source_node:
+									target_node_jobs = sorted(target_node.running_jobs, key=lambda x: x[1]) # 升序
+									for target_node_job, target_node_job_req_gpu in target_node_jobs:
+										if target_node_job_req_gpu < job_req_gpu and job_req_gpu - target_node_job_req_gpu == target_node.free_gpus:
+											swap_option = (target_node, target_node_job, target_node_job_req_gpu)
+											break
+							# 和一个大作业交换，使得target_node的碎片变大
+							for target_node in reversed(frag_node_list):
+								if swap_option==None and target_node != source_node:
+									target_node_jobs = sorted(target_node.running_jobs, key=lambda x: x[1], reverse=True) # 降序
+									for target_node_job, target_node_job_req_gpu in target_node_jobs:
+										if target_node_job_req_gpu > job_req_gpu and source_node.free_gpus + job_req_gpu >= target_node_job_req_gpu: 
+											swap_option = (target_node, target_node_job, target_node_job_req_gpu)
+											break
+							if swap_option != None:
+								self._vc.swapJob((source_node, job, job_req_gpu), swap_option)
+								migration_jobs.put((target_node_job_req_gpu, target_node_job))
+								if swap_option[0].free_gpus == 0:
+									frag_node_list.remove(swap_option[0])
+								if source_node.free_gpus == source_node.num_gpus:
+									frag_node_list.remove(source_node)
+							else:
+								break
+							
+								

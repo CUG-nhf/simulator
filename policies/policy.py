@@ -1,7 +1,6 @@
 from .placer.consolidate import ConsolidatePlacement
-from .placer.consolidateFirst import ConsolidateFirstPlacement
-from .placer.random import RandomPlacement
 from .placer.fgd import FragmentationGradientDescent
+from .placer.stBestFit import SpatioTemporalBestFit
 import pandas as pd
 import os
 
@@ -14,7 +13,8 @@ class Policy:
 		self.trace = trace.vc_trace(vc.vc_name)
 		self.logger = logger
 		self.start_ts = start_ts
-		self.jobPopulation =  self.calculateJobPopulation()
+		self._jobPopulation = self.calculateJobPopulation() # real Job pupulation for calculating fragmentation ratio
+		self._job_placer = self.job_placer()
 
 		self.total_job_num = self.trace.job_num()
 		self.que_list = []  # Pending Jobs
@@ -36,26 +36,26 @@ class Policy:
 		self.free_node_num = []  # Node Number with 8 free GPUs
 		self.frag_gpu_num = []
 		self.gpu_utilization = []
+	
+	def calculateJobPopulation(self):
+		gpu_count_map = {}
+		for job in self.trace.job_list:
+			gpu_num = job['gpu_num'] % 8
+			gpu_num = gpu_num if gpu_num != 0 else 8
+			gpu_count_map[gpu_num] = gpu_count_map.get(gpu_num, 0) + 1
 
-	def calScore(self, job):
-		window_size = 5
-		if self.time - job['submit_time'] > job['duration']:
-			return - (self.time - job['submit_time'] + job['duration'])/job['duration']
-		if len(self.gpu_utilization) < window_size or sum(self.gpu_utilization[-window_size:])/window_size < 0.8:
-			return job['submit_time']
-		else:
-			return job['gpu_num']
+		total = sum(gpu_count_map.values())
+		normalized_gpu_count_map = {k : v / total for k, v in gpu_count_map.items()}
+		return normalized_gpu_count_map
 		
-	def job_placer(self, job):
-		if self._placement == 'consolidate':
-			return ConsolidatePlacement(self._vc).place(job)
-		if self._placement == 'random':
-			return RandomPlacement(self._vc).place(job)
-		if self._placement == 'consolidateFirst':
-			return ConsolidateFirstPlacement(self._vc).place(job)
-		if self._placement == 'FGD':
-			return FragmentationGradientDescent(self._vc, self.jobPopulation).place(job)
-		raise NotImplementedError
+	def job_placer(self):
+		if 'consolidate' in self._placement :
+			return ConsolidatePlacement(self._vc)
+		if 'FGD' in self._placement:
+			return FragmentationGradientDescent(self._vc, self._jobPopulation)
+		if 'stBestFit' in self._placement:
+			return SpatioTemporalBestFit(self._vc)
+		return None
 
 	def ckpt_overhead(self, job):
 		gpu_num = job.__getitem__('gpu_num')
@@ -65,7 +65,9 @@ class Policy:
 			return 30
 		else:
 			return 60
-
+	def process_running_job(self):
+		for job in self.run_list:
+			job['remain'] -= 1
 	def runtime_log(self):
 		self.logger.info(
 			f'{self._vc_name} | Time: {int(self.time)} | Total Job: {self.total_job_num} | End job: {self.end_job_num} | Running job: {len(self.run_list)} | Pending job: {len(self.que_list)}')
@@ -111,7 +113,6 @@ class Policy:
 		seq['fragmentation_ratio'] = (seq['frag_gpu_num']/seq['total_gpu_num']).round(3)
 		seq.to_csv(f'{self._log_dir}/{self._vc_name}/{policy_name}_{self._placement}_{self._vc_name}_seq.csv', index=False)
 		
-
 	def pend_job_num_small(self):
 		job_num = 0
 		for job in self.que_list:
@@ -131,43 +132,15 @@ class Policy:
 		self.consolidate_node_num.append(self._vc.consolidate_node_num())
 		self.partial_node_num.append(self._vc.partial_node_num())
 		self.free_node_num.append(self._vc.free_node_num())
-		self.frag_gpu_num.append(self.get_frag_gpus_1())
+		self.frag_gpu_num.append(self.get_frag_gpus())
 		self.gpu_utilization.append(round((self._vc.total_gpus - self._vc.vc_free_gpus())/self._vc.total_gpus, 3))
-
+	
 	"Fragmentation Ratio"
-	def process_running_job(self):
-		for job in self.run_list:
-			job['remain'] -= 1
-
-	def calculateJobPopulation(self):
-		# 1.统计各种GPU数量作业的数量
-		gpu_count_map= {}
-		for job in self.trace:
-			gpu_num = job['gpu_num'] % 8
-			gpu_num = gpu_num if gpu_num != 0 else 8
-			if gpu_num not in gpu_count_map:
-				gpu_count_map[gpu_num] = 1
-			else:
-				gpu_count_map[gpu_num] += 1
-		# 2.把count归一化为popularity
-		total = sum(gpu_count_map.values())
-		normalized_gpu_count_map = {k : v / total for k, v in gpu_count_map.items()}
-		return normalized_gpu_count_map
-
-	# 第一种碎片率计算方式：
 	# Fragmentation refers to the free GPUs of a node whose number of free GPUs is not equal to its total number of GPUs.
-	def get_frag_gpus_1(self):
+	def get_frag_gpus(self):
 		frag_gpu_num = 0
 		for node in self._vc.node_list:
 			if node.free_gpus < node.num_gpus:
 				frag_gpu_num += node.free_gpus
 		return frag_gpu_num
-	
-	#第二种碎片率计算方式：FGD碎片/total卡数
-	def get_frag_gpus(self):
-		fragFun = FragmentationGradientDescent(self._vc, self.jobPopulation).nodeGpuFragAmount
-		frag_gpu_num = 0
-		for node in self._vc.node_list:
-			fragAmount = fragFun(node.free_gpus)
-			frag_gpu_num += fragAmount
-		return frag_gpu_num
+

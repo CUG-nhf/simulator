@@ -1,9 +1,9 @@
 class FragmentationGradientDescent:
-	def __init__(self, vc, population):
+	def __init__(self, vc, jobPopulation):
 		self.vc = vc
-		self.jobPopulation = population
 		self.name = 'FGD'
-		self.avail_nodes = self.vc.avail_node_list()
+		# for FGD to calculate Job Population
+		self.jobPopulation = jobPopulation
 	
 	def nodeGpuFragAmount(self, node_free_gpus):
 		fragAmount = 0
@@ -14,12 +14,12 @@ class FragmentationGradientDescent:
 
 	'''FGD placement'''
 
-	def fgdSelect(self, job_gpu_num):
+	def nodeSelect(self, job, job_gpu_num, node_list):
 		alloc_nodes = []
 		complete_node_num = job_gpu_num // 8
 		partial_node_nmu = job_gpu_num % 8
 
-		nodes = sorted(self.avail_nodes,key=lambda x: x.free_gpus, reverse=True)
+		nodes = sorted(node_list, key=lambda x: x.free_gpus, reverse=True)
 
 		'''assign completely idle nodes -- Consolidate'''
 		while complete_node_num > 0:
@@ -59,13 +59,13 @@ class FragmentationGradientDescent:
 		if vc_free_gpu_num < job_gpu_num:
 			return False
 
-		select_flag, alloc_nodes = self.fgdSelect(job_gpu_num)
+		select_flag, alloc_nodes = self.nodeSelect(job, job_gpu_num, self.vc.avail_node_list())
 
 		''' Placement '''
 		if select_flag:
 			for (node, req_gpu) in alloc_nodes:
 				node.allocate_gpu(req_gpu)
-				node.add_job(job)
+				node.add_job(job, req_gpu)
 				job['nodes'].append({node.node_name: req_gpu})
 			return True
 		else:

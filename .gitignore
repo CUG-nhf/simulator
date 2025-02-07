@@ -12,3 +12,5 @@ log
 figures/
 
 **/__pycache__
+
+test.ipynb

@@ -1,16 +1,14 @@
-class ConsolidatePlacement:
+import sys
+
+class SpatioTemporalBestFit:
 	def __init__(self, vc):
-		self.name = 'consolidate'
 		self.vc = vc
+		self.name = 'stBestFit'
 
-	'''
-		Enforce consolidate placement
-		Node list selection
-		-- job_gpu_num <= 8
-		-- job_gpu_num > 8  and job_gpu_num % 8 == 0
-		-- job_gpu_num > 8  and job_gpu_num % 8 != 0
-	'''
-
+	def calculateFitnessScore(self, node, job, node_free_gpu, job_req_gpu):
+		return	(node_free_gpu-job_req_gpu)/node.num_gpus + (abs(node.getLargestReaminTime()-job['remain']))/(max(job['remain'], node.getLargestReaminTime()))  #+ 0.1 
+		
+	'''Spatio-Temporal Best-Fit placement'''
 	def nodeSelect(self, job, job_gpu_num, node_list):
 		alloc_nodes = []
 		complete_node_num = job_gpu_num // 8
@@ -29,15 +27,26 @@ class ConsolidatePlacement:
 			
 		if partial_node_nmu == 0:
 			return True, alloc_nodes
-		
-		'''assign partially idle nodes -- Best-Fit'''
-		nodes.reverse()
+
+		'''assign partially idle nodes -- Spatio-Temporal Best-Fit'''
+		# 1) Filter out unavailable nodes
+		nodes = [node for node in nodes if node.free_gpus >= partial_node_nmu]
+		if len(nodes) == 0:
+			return False, alloc_nodes
+		# Assign Job to node
+		target_node = None
+		node_score = sys.float_info.max
 		for node in nodes:
-			if node.free_gpus >= partial_node_nmu:
-				alloc_nodes.append((node, partial_node_nmu))
-				return True, alloc_nodes
-		return False, alloc_nodes
-	
+			node_free_gpus = node.free_gpus
+			# 对可用节点进行打分排序，选择分数最小的节点：剩余时间接近，空闲卡数量少
+			tmp_node_score = self.calculateFitnessScore(node, job, node_free_gpus, partial_node_nmu)
+			if tmp_node_score < node_score:
+				target_node = node
+				node_score = tmp_node_score
+		alloc_nodes.append((target_node, partial_node_nmu))
+
+		return True, alloc_nodes
+
 	def place(self, job):
 		vc_free_gpu_num = self.vc.vc_free_gpus()
 		job_gpu_num = job['gpu_num']
@@ -45,10 +54,6 @@ class ConsolidatePlacement:
 		# Total Free GPU Check
 		if vc_free_gpu_num < job_gpu_num:
 			return False
-
-		# TODO: Support for 4 GPU Nodes
-		if self.vc._num_gpus_per_node != 8:
-			raise NotImplementedError
 
 		select_flag, alloc_nodes = self.nodeSelect(job, job_gpu_num, self.vc.avail_node_list())
 

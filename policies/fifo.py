@@ -1,4 +1,5 @@
 from .policy import Policy
+import random
 
 
 class FirstInFirstOut(Policy):
@@ -6,6 +7,13 @@ class FirstInFirstOut(Policy):
 		super(FirstInFirstOut, self).__init__(
 			trace, vc, placement, log_dir, logger, start_ts)
 		self._name = 'fifo'
+
+		# random.seed(45)
+		# error = 0.45
+		# for job in self.trace.job_list:
+		# 	job['true_duration'] = job['duration']
+		# 	job['duration'] = (random.uniform(-error, error) + 1) * job['duration']
+		# 	job['remain'] = job['duration']
 
 	def simulate(self):
 		prev_index = 0
@@ -39,9 +47,9 @@ class FirstInFirstOut(Policy):
 			self.que_list.sort(key=lambda x: x.__getitem__('submit_time'))
 			que_ls = self.que_list.copy()  # Avoid list.remove() issue
 			for job in que_ls:
-				if self.job_placer(job):
+				if self._job_placer.place(job):
 					job['start_time'] = self.time
-					job['end_time'] = job['start_time'] + job['duration']
+					job['end_time'] = job['start_time'] + job['duration'] #  job['true_duration']
 					job['queue'] = self.time - job['submit_time']
 					job['status'] = 'run'
 					self.que_list.remove(job)
