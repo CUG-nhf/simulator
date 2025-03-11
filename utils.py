@@ -29,41 +29,16 @@ def simulate_vc(trace, vc, placement, log_dir, policy, logger, start_ts, *args):
 
 
 def get_available_schedulers():
-	return ['fifo', 'sjf', 'gandiva', 'defragS', 'dynamic']
+	return ['fifo', 'gandiva', 'defragS', "sjf"]
 
 def get_available_placers():
-	return ['random', 'consolidate', 'FGD', "stBestFit"]
+	return ['random', 'consolidate', 'FGD', "stBestFit", "dotProd", "clustering", "worstFit",]
 
-def modify_gpu_num(df, vc_dict, mutation_probability=0.1, random_state=45):
-	# 合并两个小集群
-	df.loc[df['vc'] == 'ed69ec', 'vc'] = '103959'
-	vc_dict['103959'] += vc_dict['ed69ec']
-	del vc_dict['ed69ec']
-	'''
-	6214e9 64
-	7f04ca 32
-	11cb48 16
-	b436b2 64
-	ee9e8c 64
-	e13805 16
-	6c71a0 32
-	2869ce 16
-	ed69ec 8
-	103959 8
-	0e4a51 32
-	'''
-	# Randomly increase the gpu_num for some 1 GPU Jobs 
-	gpu_num_1_rows = df[df['gpu_num'] == 1]
-	change_indices = gpu_num_1_rows.sample(frac=mutation_probability, random_state=random_state).index
-	np.random.seed(random_state)
-	df.loc[change_indices, 'gpu_num'] = np.random.choice([8, 12, 16, 20, 24, 28, 32], size=len(change_indices)) # [8, 16, 32, 64]
-	return df, vc_dict
 
 def trace_process(dir, date_range, vc_dict):
 	start = '2020-04-01 00:00:00'
 	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time', 'end_time'], usecols=['job_id', 'user', 'vc', 'gpu_num','cpu_num', 'state', 'submit_time', 'duration','end_time'])
 	df.rename(columns={'job_id':'jobname'}, inplace=True)
-	df['real_end_time'] = df['end_time']
 	
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
@@ -109,16 +84,11 @@ def trace_philly_process(dir, date_range, vc_dict):
 	start = '2017-10-01 00:00:00'
 	df = pd.read_csv(dir+'/cluster_log.csv', parse_dates=['submit_time', 'end_time'], converters={'vc': str},
 				  usecols=['user', 'vc', 'jobname', 'gpu_num', 'state', 'submit_time', 'duration', 'end_time'])
-	df['real_end_time'] = df['end_time']
 	# Consider gpu jobs only
 	df = df[df['gpu_num'] > 0]
 	# only 3 jobs are deleted
 	df = df[~df['gpu_num'].isin([6, 7])]
 	
-	# Modify gpu num 
-	# if mutation_probability > 0:
-	# 	df, vc_dict = modify_gpu_num(df, vc_dict, mutation_probability)
-
 	df = df[df['vc'].isin(vc_dict.keys())]
 	
 	df = df[df['submit_time'] >= pd.Timestamp(start)]
@@ -152,7 +122,6 @@ def trace_ali20_process(dir):
 	df.drop(columns=['inst_id', 'user',], inplace=True)
 	df.rename(columns={'job_name':'jobname'}, inplace=True)
 	df.rename(columns={'start_time':'submit_time'}, inplace=True)
-	df['real_end_time'] = df['end_time']
 
 	df['remain'] = df['duration']
 	df[['start_time', 'end_time']] = sys.maxsize

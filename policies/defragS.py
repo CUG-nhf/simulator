@@ -48,7 +48,6 @@ class DeFragScheduler(Policy):
 			# Pend Job
 			que_ls = self.que_list.copy()  # Avoid list.remove() issue
 			que_ls.sort(key=lambda x: x.__getitem__('submit_time'))
-			need_defrag = False
 			for job in que_ls:
 				if self._job_placer.place(job):
 					job['start_time'] = self.time
@@ -60,8 +59,6 @@ class DeFragScheduler(Policy):
 					need_defrag = True
 				else:
 					break
-			if need_defrag:
-				self.defragmentation()
 
 			'''3. Log & Result Recorder'''
 			if self.time % 10000 == 0:

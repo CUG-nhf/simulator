@@ -1,6 +1,10 @@
 from .placer.consolidate import ConsolidatePlacement
 from .placer.fgd import FragmentationGradientDescent
 from .placer.stBestFit import SpatioTemporalBestFit
+from .placer.dotProd import DotProdPlacement
+from .placer.random import RandomPlacement
+from .placer.clustering import ClusteringPlacement
+from .placer.worstFit import WorstFitPlacement
 import pandas as pd
 import os
 
@@ -49,7 +53,15 @@ class Policy:
 		return normalized_gpu_count_map
 		
 	def job_placer(self):
-		if 'consolidate' in self._placement :
+		if 'worstFit' in self._placement:
+			return WorstFitPlacement(self._vc)
+		if 'clustering' in self._placement:
+			return ClusteringPlacement(self._vc)
+		if 'dotProd' in self._placement:
+			return DotProdPlacement(self._vc)
+		if 'random' in self._placement:
+			return RandomPlacement(self._vc)
+		if 'consolidate' in self._placement:  # actually it is BestFit
 			return ConsolidatePlacement(self._vc)
 		if 'FGD' in self._placement:
 			return FragmentationGradientDescent(self._vc, self._jobPopulation)
@@ -74,6 +86,7 @@ class Policy:
 
 	'''Simulation Result Recorder'''
 	def log_recorder(self, policy_name):
+		self.seq_recorder()
 		if not os.path.exists(os.path.join(self._log_dir, self._vc_name)):
 			os.mkdir(os.path.join(self._log_dir, self._vc_name))
 

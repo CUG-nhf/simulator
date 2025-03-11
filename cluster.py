@@ -106,6 +106,8 @@ class VC:
 			job.modify_nodes(source_node.node_name, target_node.node_name, job_req_gpu)
 			
 			job['ckpt_times'] += 1
+
+			print(f"Job Migration: job_req_gpu")
 	
 	def swapJob(self, job_info_1, job_info_2):
 		source_node, job, job_req_gpu = job_info_1
@@ -129,6 +131,8 @@ class VC:
 		
 		job['ckpt_times'] += 1
 		target_node_job['ckpt_times'] += 1
+
+		print(f"Job Swap: job1_size: {job_req_gpu}, job2_size: {target_node_job_req_gpu}")
 				
 	def frag_node_list(self):
 		# 判断什么样的节点才是碎片节点
